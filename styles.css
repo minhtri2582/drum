@@ -1,0 +1,436 @@
+/* Trống điện tử online - Drum Machine */
+:root {
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --accent: #22c55e;
+  --accent-hover: #16a34a;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --cell-inactive: #f3f4f6;
+  --cell-active: #22c55e;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 2rem;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--bg-secondary);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn:hover {
+  background: var(--cell-inactive);
+  border-color: #d1d5db;
+}
+
+.btn-play {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.btn-play:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-play.playing {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-play.playing:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.play-icon {
+  font-size: 1.2rem;
+}
+
+.tempo-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tempo-control label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.tempo-control input {
+  width: 60px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.time-signature-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-signature-control label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.time-signature-control select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: var(--bg-secondary);
+  cursor: pointer;
+}
+
+.metronome-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.metronome-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.btn-secondary {
+  background: var(--cell-inactive);
+}
+
+.save-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.copy-status {
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+/* Sequencer Grid */
+.sequencer {
+  margin-bottom: 0;
+  overflow-x: auto;
+}
+
+.grid-header {
+  display: flex;
+  margin-bottom: 0.25rem;
+}
+
+.instrument-label {
+  width: 140px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+}
+
+.instrument-label.empty {
+  visibility: hidden;
+}
+
+.steps-header {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.steps-header-24 { grid-template-columns: repeat(24, 1fr); min-width: 600px; }
+.steps-header-32 { grid-template-columns: repeat(32, 1fr); min-width: 960px; }
+
+.measure {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: left;
+  padding-left: 2px;
+}
+
+.sequencer-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sequencer-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.instrument-name {
+  width: 140px;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-primary);
+}
+
+.instrument-name.muted {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.steps {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+}
+
+.steps-24 { grid-template-columns: repeat(24, 1fr); min-width: 600px; }
+.steps-32 { grid-template-columns: repeat(32, 1fr); min-width: 960px; }
+
+.step {
+  aspect-ratio: 1;
+  min-width: 24px;
+  max-width: 36px;
+  width: 100%;
+  background: var(--cell-inactive);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+/* Highlight nhịp đập đầu tiên của từng phách (ô 1, 5, 9, 13) */
+.step.downbeat {
+  background: #e0e8f0;
+}
+
+.step:hover {
+  filter: brightness(0.95);
+}
+
+.step.active {
+  background: var(--cell-active);
+  border-color: var(--accent);
+}
+
+.step.active:hover {
+  background: var(--accent-hover);
+}
+
+/* Open Hi-hat / Snare rimshot - màu khác để phân biệt */
+.step.active.variant {
+  background: #0ea5e9;
+  border-color: #0284c7;
+}
+
+.step.active.variant:hover {
+  background: #0284c7;
+}
+
+.step.current {
+  box-shadow: 0 0 0 2px var(--text-primary);
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal-content h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.setting-item {
+  margin-bottom: 1rem;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.setting-item select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.modal-rhythm {
+  min-width: 320px;
+}
+
+.rhythm-search {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.rhythm-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.rhythm-loading,
+.rhythm-empty {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.btn-save {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn-save:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.rhythm-preset {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.rhythm-preset:hover {
+  background: var(--cell-inactive);
+}
+
+#closeSettings,
+#closeRhythm {
+  margin-top: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 1280px) {
+  .container {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 1rem;
+  }
+
+  .container {
+    padding: 1rem;
+  }
+
+  .instrument-name,
+  .instrument-label {
+    width: 100px;
+    font-size: 0.75rem;
+  }
+
+  .step {
+    min-width: 18px;
+    max-width: 28px;
+  }
+
+  .steps-header-32,
+  .steps-32 {
+    min-width: 720px;
+  }
+}

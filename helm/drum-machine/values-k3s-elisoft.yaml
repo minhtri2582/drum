@@ -1,0 +1,21 @@
+# K3s Elisoft override values
+image:
+  repository: registry.gitlab.com/elisoft-devops/drum-machine
+  tag: "latest"
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: production
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  hosts:
+    - host: drum.k.elidev.info
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: drum.k.elidev.info
+      hosts:
+        - drum.k.elidev.info

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trống điện tử online - Drum Machine</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Tri's Drum Player</h1>
+
+    <div class="controls">
+      <button id="playBtn" class="btn btn-play" aria-label="Phát">
+        <span class="play-icon">▶</span>
+      </button>
+      <div class="tempo-control">
+        <label for="bpm">BPM</label>
+        <input type="number" id="bpm" value="90" min="40" max="240" step="1">
+      </div>
+      <div class="time-signature-control">
+        <label for="timeSignature">Nhịp</label>
+        <select id="timeSignature">
+          <option value="4/4">4/4</option>
+          <option value="3/4">3/4</option>
+          <option value="12/8">12/8</option>
+        </select>
+      </div>
+      <label class="metronome-option">
+        <input type="checkbox" id="metronomeCheck" aria-label="Metronome">
+        <span>Metronome</span>
+      </label>
+      <button id="rhythmBtn" class="btn">Điệu mẫu</button>
+      <button id="clearBtn" class="btn">Xoá</button>
+    </div>
+
+    <div class="save-section">
+      <button id="copyUrlBtn" class="btn btn-secondary">Sao chép link để lưu</button>
+      <span id="copyStatus" class="copy-status"></span>
+    </div>
+
+    <div class="sequencer">
+      <div class="grid-header">
+        <div class="instrument-label empty"></div>
+        <div class="steps-header"></div>
+      </div>
+      <div id="sequencerGrid" class="sequencer-grid"></div>
+    </div>
+  </div>
+
+  <!-- Modal Nhịp điệu -->
+  <div id="rhythmModal" class="modal">
+    <div class="modal-content modal-rhythm">
+      <h2>Chọn nhịp điệu mẫu</h2>
+      <input type="text" id="rhythmSearch" class="rhythm-search" placeholder="Tìm nhịp điệu...">
+      <div id="rhythmPresets" class="rhythm-presets"></div>
+      <div class="modal-actions">
+        <button id="saveRhythmBtn" class="btn btn-save">Lưu nhịp hiện tại</button>
+        <button id="closeRhythm" class="btn">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
