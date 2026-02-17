@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: registry.gitlab.com/elisoft-devops/drum-machine
+  repository: minhtri2582/drum-machine
   pullPolicy: IfNotPresent
   tag: "latest"
 

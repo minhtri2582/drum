@@ -31,8 +31,8 @@ docker run -p 8080:80 drum-machine:latest
 
 ```bash
 # Build và push image
-docker build -t registry.gitlab.com/elisoft-devops/drum-machine:latest .
-docker push registry.gitlab.com/elisoft-devops/drum-machine:latest
+docker build -t minhtri2582/drum-machine:latest .
+docker push minhtri2582/drum-machine:latest
 
 # Deploy với Helm
 helm upgrade --install drum-machine ./helm/drum-machine \
