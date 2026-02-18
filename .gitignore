@@ -18,3 +18,4 @@ server/client_secret*.json
 **/values-*-local.yaml
 server/node_modules/
 samples/
+docs/
