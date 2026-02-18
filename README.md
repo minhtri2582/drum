@@ -55,6 +55,9 @@ docker run -p 8080:80 drum-machine:latest
 
 ## Deploy K3s (Helm)
 
+- **Chuẩn bị** (PostgreSQL + Secrets): [docs/PREPARE-DEPLOY.md](docs/PREPARE-DEPLOY.md)
+- **Deploy đầy đủ**: [docs/DEPLOY-K3S.md](docs/DEPLOY-K3S.md)
+
 ```bash
 # Build và push image
 docker build -t minhtri2582/drum-machine:latest .

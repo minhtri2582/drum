@@ -11,7 +11,10 @@ Thumbs.db
 # Logs
 *.log
 
-server/client_secret_1018713018400-9vmgkvdbn5r1qf9ocgijb0h7f76u1u60.apps.googleusercontent.com.json
+# Secrets - never commit
 server/.env
+server/.env.local
+server/client_secret*.json
+**/values-*-local.yaml
 server/node_modules/
 samples/

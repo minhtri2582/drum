@@ -65,6 +65,9 @@ autoscaling:
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
 
+# Env from Secret (DATABASE_URL, GOOGLE_*, JWT_SECRET, FRONTEND_URL)
+envFrom: []
+
 volumes: []
 volumeMounts: []
 

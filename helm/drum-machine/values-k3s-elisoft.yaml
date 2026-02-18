@@ -1,7 +1,20 @@
 # K3s Elisoft override values
+# Domain: drum.doleminhtri.com
+# Tạo secret: kubectl create secret generic drum-machine-secrets -n drum-machine \
+#   --from-literal=DATABASE_URL='postgresql://drum:PASSWORD@drum-db-postgresql:5432/drum' \
+#   --from-literal=GOOGLE_CLIENT_ID='...' \
+#   --from-literal=GOOGLE_CLIENT_SECRET='...' \
+#   --from-literal=JWT_SECRET='...' \
+#   --from-literal=GOOGLE_CALLBACK_URL='https://drum.doleminhtri.com/api/auth/google/callback' \
+#   --from-literal=FRONTEND_URL='https://drum.doleminhtri.com'
+
 image:
   repository: minhtri2582/drum-machine
   tag: "latest"
+
+envFrom:
+  - secretRef:
+      name: drum-machine-secrets
 
 ingress:
   enabled: true
