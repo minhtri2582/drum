@@ -8,6 +8,7 @@ const INSTRUMENTS = [
   { id: 'tom', name: 'Tom-tom' },
   { id: 'floorTom', name: 'Chân tom sàn' },
   { id: 'cymbal', name: 'Cymbal' },
+  { id: 'cowbell', name: 'Cowbell' },
   { id: 'hihat', name: 'Hi-hat' },
   { id: 'snare', name: 'Trống Snare' },
   { id: 'kick', name: 'Trống bass' }
@@ -261,7 +262,7 @@ function initPattern() {
   });
 }
 
-// Web Audio API - standard drum kit sounds
+// Web Audio API - drum kit synthesis (standard acoustic-style)
 function getAudioContext() {
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -277,48 +278,55 @@ function playKick() {
   osc.connect(gain);
   gain.connect(ctx.destination);
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(150, t);
-  osc.frequency.exponentialRampToValueAtTime(55, t + 0.015);
-  osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.2);
-  gain.gain.setValueAtTime(0.95, t);
-  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+  osc.frequency.setValueAtTime(180, t);
+  osc.frequency.exponentialRampToValueAtTime(52, t + 0.012);
+  osc.frequency.exponentialRampToValueAtTime(45, t + 0.08);
+  osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.22);
+  gain.gain.setValueAtTime(1, t);
+  gain.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
   osc.start(t);
-  osc.stop(t + 0.2);
+  osc.stop(t + 0.22);
 }
 
 function playSnare() {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
-  const bufferSize = ctx.sampleRate * 0.1;
+  // Body - thân trống
+  const osc = ctx.createOscillator();
+  const oscGain = ctx.createGain();
+  osc.connect(oscGain);
+  oscGain.connect(ctx.destination);
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(220, t);
+  osc.frequency.exponentialRampToValueAtTime(95, t + 0.025);
+  osc.frequency.exponentialRampToValueAtTime(70, t + 0.06);
+  oscGain.gain.setValueAtTime(0.55, t);
+  oscGain.gain.exponentialRampToValueAtTime(0.15, t + 0.04);
+  oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+  osc.start(t);
+  osc.stop(t + 0.1);
+  // Crack - tiếng dây snare (noise bandpass 2-5kHz)
+  const bufferSize = ctx.sampleRate * 0.08;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.06));
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.04));
   }
   const noise = ctx.createBufferSource();
   noise.buffer = buffer;
   const noiseGain = ctx.createGain();
   const noiseFilter = ctx.createBiquadFilter();
-  noiseFilter.type = 'highpass';
-  noiseFilter.frequency.value = 800;
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.value = 3200;
+  noiseFilter.Q.value = 1.2;
   noise.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
   noiseGain.connect(ctx.destination);
-  noiseGain.gain.setValueAtTime(0.4, t);
-  noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+  noiseGain.gain.setValueAtTime(0.5, t);
+  noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.06);
   noise.start(t);
-  noise.stop(t + 0.1);
-  const osc = ctx.createOscillator();
-  const oscGain = ctx.createGain();
-  osc.connect(oscGain);
-  oscGain.connect(ctx.destination);
-  osc.frequency.setValueAtTime(200, t);
-  osc.frequency.exponentialRampToValueAtTime(90, t + 0.035);
-  osc.type = 'triangle';
-  oscGain.gain.setValueAtTime(0.45, t);
-  oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.035);
-  osc.start(t);
-  osc.stop(t + 0.035);
+  noise.stop(t + 0.08);
 }
 
 function playSnareRimshot() {
@@ -328,56 +336,57 @@ function playSnareRimshot() {
   const gain = ctx.createGain();
   osc.connect(gain);
   gain.connect(ctx.destination);
-  osc.frequency.setValueAtTime(550, t);
-  osc.frequency.exponentialRampToValueAtTime(180, t + 0.025);
+  osc.frequency.setValueAtTime(600, t);
+  osc.frequency.exponentialRampToValueAtTime(200, t + 0.02);
   osc.type = 'sine';
-  gain.gain.setValueAtTime(0.55, t);
-  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.045);
+  gain.gain.setValueAtTime(0.5, t);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
   osc.start(t);
-  osc.stop(t + 0.045);
-  const bufferSize = ctx.sampleRate * 0.018;
+  osc.stop(t + 0.04);
+  const bufferSize = ctx.sampleRate * 0.025;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.12));
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.1));
   }
   const noise = ctx.createBufferSource();
   noise.buffer = buffer;
   const noiseGain = ctx.createGain();
   const noiseFilter = ctx.createBiquadFilter();
   noiseFilter.type = 'bandpass';
-  noiseFilter.frequency.value = 2200;
-  noiseFilter.Q.value = 2.5;
+  noiseFilter.frequency.value = 2800;
+  noiseFilter.Q.value = 2;
   noise.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
   noiseGain.connect(ctx.destination);
-  noiseGain.gain.setValueAtTime(0.22, t);
-  noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.018);
+  noiseGain.gain.setValueAtTime(0.35, t);
+  noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.02);
   noise.start(t);
-  noise.stop(t + 0.018);
+  noise.stop(t + 0.025);
 }
 
 function playHiHat(closed = true) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
-  const dur = closed ? 0.035 : 0.12;
+  const dur = closed ? 0.035 : 0.15;
   const bufferSize = ctx.sampleRate * dur;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
+  const decay = closed ? 0.15 : 0.25;
   for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.22));
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * decay));
   }
   const noise = ctx.createBufferSource();
   noise.buffer = buffer;
   const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();
   filter.type = 'bandpass';
-  filter.frequency.value = 8500;
-  filter.Q.value = 0.8;
+  filter.frequency.value = closed ? 9200 : 7500;
+  filter.Q.value = closed ? 1.2 : 0.6;
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(closed ? 0.22 : 0.28, t);
+  gain.gain.setValueAtTime(closed ? 0.25 : 0.22, t);
   gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
   noise.start(t);
   noise.stop(t + dur);
@@ -390,13 +399,15 @@ function playTom(freq) {
   const gain = ctx.createGain();
   osc.connect(gain);
   gain.connect(ctx.destination);
-  osc.frequency.setValueAtTime(freq, t);
-  osc.frequency.exponentialRampToValueAtTime(freq * 0.35, t + 0.1);
   osc.type = 'sine';
-  gain.gain.setValueAtTime(0.55, t);
-  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+  osc.frequency.setValueAtTime(freq * 1.15, t);
+  osc.frequency.exponentialRampToValueAtTime(freq, t + 0.015);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.4, t + 0.12);
+  gain.gain.setValueAtTime(0.6, t);
+  gain.gain.exponentialRampToValueAtTime(0.2, t + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
   osc.start(t);
-  osc.stop(t + 0.1);
+  osc.stop(t + 0.12);
 }
 
 function playMetronomeClick(accent = false) {
@@ -414,29 +425,46 @@ function playMetronomeClick(accent = false) {
   osc.stop(t + 0.03);
 }
 
+function playCowbell() {
+  const ctx = getAudioContext();
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(1050, t);
+  osc.frequency.exponentialRampToValueAtTime(650, t + 0.025);
+  gain.gain.setValueAtTime(0.35, t);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+  osc.start(t);
+  osc.stop(t + 0.1);
+}
+
 function playCymbal() {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
-  const bufferSize = ctx.sampleRate * 0.3;
+  const bufferSize = ctx.sampleRate * 0.35;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.1));
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.12));
   }
   const noise = ctx.createBufferSource();
   noise.buffer = buffer;
   const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();
   filter.type = 'bandpass';
-  filter.frequency.value = 5500;
-  filter.Q.value = 0.5;
+  filter.frequency.value = 5200;
+  filter.Q.value = 0.6;
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(0.32, t);
-  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+  gain.gain.setValueAtTime(0.28, t);
+  gain.gain.exponentialRampToValueAtTime(0.08, t + 0.08);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
   noise.start(t);
-  noise.stop(t + 0.3);
+  noise.stop(t + 0.35);
 }
 
 function playDrum(instrumentId, value = 1) {
@@ -446,9 +474,10 @@ function playDrum(instrumentId, value = 1) {
     case 'snare': value === 2 ? playSnareRimshot() : playSnare(); break;
     case 'hihat':
     case 'hihatPedal': playHiHat(value !== 2); break;
-    case 'tom': playTom(180); break;
-    case 'floorTom': playTom(120); break;
+    case 'tom': playTom(165); break;       // Rack tom
+    case 'floorTom': playTom(95); break;   // Floor tom
     case 'cymbal': playCymbal(); break;
+    case 'cowbell': playCowbell(); break;
     default: break;
   }
 }
@@ -1176,7 +1205,9 @@ async function init() {
 
   playBtn.addEventListener('click', togglePlayback);
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !e.target.matches('input, textarea, select')) {
+    if (e.target.matches('input, textarea, select')) return;
+    if (document.querySelector('.modal.active')) return;
+    if (e.code === 'Space' || e.code === 'Enter') {
       e.preventDefault();
       togglePlayback();
     }
