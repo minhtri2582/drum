@@ -4,7 +4,7 @@ Công cụ trống điện tử trực tuyến để tạo, lưu và chỉnh s�
 
 ## Tính năng
 
-- **Sequencer 32 bước** với 8 nhạc cụ: Bàn đạp hi-hat, Tom-tom, Chân tom sàn, Cymbal, Cowbell, Hi-hat, Trống Snare, Trống bass
+- **Sequencer 32 bước** với 9 nhạc cụ: Bàn đạp hi-hat, Tom-tom (nhấp 2 lần → tom thấp), Chân tom sàn, Cymbal, Ride, Cowbell, Hi-hat, Trống Snare, Trống bass
 - **Phát nhạc** với điều chỉnh BPM (40–240)
 - **Lưu & chia sẻ** bằng cách sao chép link (pattern được mã hóa trong URL)
 - **Đăng nhập Google** – lưu preset riêng tư trên server
@@ -73,7 +73,7 @@ helm upgrade --install drum-machine ./helm/drum-machine \
 
 1. **Tạo điệu trống**: Nhấp vào các ô vuông để bật/tắt beat
 2. **Phát**: Nhấn nút Play (▶)
-3. **Lưu**: Nhấn "Sao chép link để lưu" và dán link vào bookmark hoặc gửi cho người khác
+3. **Lưu**: Nhấn "Sao chép link share" và dán link vào bookmark hoặc gửi cho người khác
 4. **Chọn mẫu**: Nhấn "Nhịp điệu" để chọn nhịp có sẵn
 5. **Xóa**: Nhấn "Xoá" để reset pattern
 

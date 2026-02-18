@@ -9,6 +9,7 @@ const { initSchema } = require('./db');
 const authRoutes = require('./routes/auth');
 const presetRoutes = require('./routes/presets');
 const meRoutes = require('./routes/me');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use(jwtAuth);
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), authRoutes);
 app.use('/api/me', meRoutes);
 app.use('/api/presets', presetRoutes);
+app.use('/api/users', usersRoutes);
 
 app.use(express.static(path.join(__dirname, '..')));
 

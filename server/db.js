@@ -29,6 +29,15 @@ CREATE TABLE IF NOT EXISTS presets (
 
 CREATE INDEX IF NOT EXISTS idx_presets_user_id ON presets(user_id);
 CREATE INDEX IF NOT EXISTS idx_presets_is_public ON presets(is_public);
+
+CREATE TABLE IF NOT EXISTS preset_shares (
+  preset_id INTEGER NOT NULL REFERENCES presets(id) ON DELETE CASCADE,
+  shared_with_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (preset_id, shared_with_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_preset_shares_shared_with ON preset_shares(shared_with_user_id);
 `;
 
 async function initSchema() {

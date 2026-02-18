@@ -8,6 +8,7 @@ const INSTRUMENTS = [
   { id: 'tom', name: 'Tom-tom' },
   { id: 'floorTom', name: 'Chân tom sàn' },
   { id: 'cymbal', name: 'Cymbal' },
+  { id: 'ride', name: 'Ride' },
   { id: 'cowbell', name: 'Cowbell' },
   { id: 'hihat', name: 'Hi-hat' },
   { id: 'snare', name: 'Trống Snare' },
@@ -42,6 +43,10 @@ const timeSignatureSelect = document.getElementById('timeSignature');
 const PRESETS_YAML_PATH = 'styles/presets.yaml';
 const API_BASE = '';
 
+const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+const ICON_DELETE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
 let currentUser = null;
 
 // Dialog modal helpers (thay thế alert, confirm, prompt)
@@ -63,13 +68,10 @@ function showAlert(message, title = 'Thông báo') {
     const close = () => {
       modal.classList.remove('active');
       okBtn.removeEventListener('click', onOk);
-      modal.removeEventListener('click', onBackdrop);
       resolve();
     };
     const onOk = () => close();
-    const onBackdrop = (e) => { if (e.target === modal) close(); };
     okBtn.addEventListener('click', onOk);
-    modal.addEventListener('click', onBackdrop);
     modal.classList.add('active');
   });
 }
@@ -95,20 +97,17 @@ function showConfirm(message, confirmText = 'Xác nhận', cancelText = 'Hủy',
       modal.classList.remove('active');
       cancelBtn.removeEventListener('click', onCancel);
       confirmBtn.removeEventListener('click', onConfirm);
-      modal.removeEventListener('click', onBackdrop);
       resolve(result);
     };
     const onCancel = () => close(false);
     const onConfirm = () => close(true);
-    const onBackdrop = (e) => { if (e.target === modal) close(false); };
     cancelBtn.addEventListener('click', onCancel);
     confirmBtn.addEventListener('click', onConfirm);
-    modal.addEventListener('click', onBackdrop);
     modal.classList.add('active');
   });
 }
 
-function showPrompt(message, defaultValue = '', title = 'Nhập tên') {
+function showPrompt(message, defaultValue = '', title = 'Nhập tên', placeholder = '') {
   return new Promise((resolve) => {
     const modal = document.getElementById('dialogModal');
     const titleEl = document.getElementById('dialogTitle');
@@ -118,11 +117,11 @@ function showPrompt(message, defaultValue = '', title = 'Nhập tên') {
     if (!modal || !titleEl || !messageEl || !inputEl || !actionsEl) return resolve(null);
     titleEl.textContent = title;
     messageEl.textContent = message;
-    messageEl.style.display = '';
+    messageEl.style.display = message ? '' : 'none';
     inputEl.style.display = '';
     inputEl.classList.remove('hidden');
     inputEl.value = defaultValue;
-    inputEl.placeholder = defaultValue || '';
+    inputEl.placeholder = placeholder || defaultValue || '';
     actionsEl.innerHTML = '<button class="btn btn-ghost dialog-cancel">Hủy</button><button class="btn btn-save dialog-confirm">OK</button>';
     const cancelBtn = actionsEl.querySelector('.dialog-cancel');
     const confirmBtn = actionsEl.querySelector('.dialog-confirm');
@@ -130,23 +129,21 @@ function showPrompt(message, defaultValue = '', title = 'Nhập tên') {
       modal.classList.remove('active');
       cancelBtn.removeEventListener('click', onCancel);
       confirmBtn.removeEventListener('click', onConfirm);
-      modal.removeEventListener('click', onBackdrop);
       inputEl.removeEventListener('keydown', onKey);
       resolve(result);
     };
     const onCancel = () => close(null);
     const onConfirm = () => close(inputEl.value.trim());
-    const onBackdrop = (e) => { if (e.target === modal) close(null); };
     const onKey = (e) => {
       if (e.key === 'Enter') onConfirm();
       else if (e.key === 'Escape') onCancel();
     };
     cancelBtn.addEventListener('click', onCancel);
     confirmBtn.addEventListener('click', onConfirm);
-    modal.addEventListener('click', onBackdrop);
     inputEl.addEventListener('keydown', onKey);
     modal.classList.add('active');
     inputEl.focus();
+    setTimeout(() => inputEl.select(), 0);
   });
 }
 
@@ -262,7 +259,53 @@ function initPattern() {
   });
 }
 
-// Web Audio API - drum kit synthesis (standard acoustic-style)
+// Sample WAV - TR-909 Detroit (Oramics Sampled, public domain)
+// https://oramics.github.io/sampled/DM/TR-909/Detroit/
+const SAMPLE_BASE = 'https://oramics.github.io/sampled/DM/TR-909/Detroit/samples/';
+const SAMPLE_KEYS = {
+  kick: 'kick.wav',
+  snare: 'snare.wav',
+  snareRimshot: 'rim.wav',
+  hihatClosed: 'hihat-closed.wav',
+  hihatOpen: 'hihat-open-1.wav',
+  tomHigh: 'tom-h.wav',
+  tomLow: 'tom-l.wav',
+  cymbal: 'cymbal.wav',
+  ride: 'ride.wav'
+};
+let sampleBuffers = {};
+let samplesLoaded = false;
+
+async function loadSamples() {
+  if (samplesLoaded) return;
+  const ctx = getAudioContext();
+  const keys = Object.keys(SAMPLE_KEYS);
+  try {
+    await Promise.all(keys.map(async (key) => {
+      const url = SAMPLE_BASE + SAMPLE_KEYS[key];
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Sample fetch failed: ' + key);
+      const arrayBuffer = await res.arrayBuffer();
+      sampleBuffers[key] = await ctx.decodeAudioData(arrayBuffer);
+    }));
+    samplesLoaded = true;
+  } catch (e) {
+    console.warn('Drum samples load failed, using synthesis:', e.message);
+  }
+}
+
+function playSampleBuffer(key) {
+  const buf = sampleBuffers[key];
+  if (!buf) return false;
+  const ctx = getAudioContext();
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
+  return true;
+}
+
+// Web Audio API - drum kit synthesis (fallback when samples unavailable)
 function getAudioContext() {
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -467,17 +510,64 @@ function playCymbal() {
   noise.stop(t + 0.35);
 }
 
+function playRide() {
+  const ctx = getAudioContext();
+  const t = ctx.currentTime;
+  const bufferSize = ctx.sampleRate * 0.25;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.08));
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 6800;
+  filter.Q.value = 0.6;
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  gain.gain.setValueAtTime(0.22, t);
+  gain.gain.exponentialRampToValueAtTime(0.06, t + 0.04);
+  gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+  noise.start(t);
+  noise.stop(t + 0.25);
+}
+
 function playDrum(instrumentId, value = 1) {
   if (mutedInstruments.has(instrumentId)) return;
+  // Ưu tiên sample WAV nếu đã load
+  const useSample = (key) => playSampleBuffer(key);
   switch (instrumentId) {
-    case 'kick': playKick(); break;
-    case 'snare': value === 2 ? playSnareRimshot() : playSnare(); break;
+    case 'kick':
+      if (!useSample('kick')) playKick();
+      break;
+    case 'snare':
+      if (value === 2) return useSample('snareRimshot') || playSnareRimshot();
+      if (!useSample('snare')) playSnare();
+      break;
     case 'hihat':
-    case 'hihatPedal': playHiHat(value !== 2); break;
-    case 'tom': playTom(165); break;       // Rack tom
-    case 'floorTom': playTom(95); break;   // Floor tom
-    case 'cymbal': playCymbal(); break;
-    case 'cowbell': playCowbell(); break;
+    case 'hihatPedal':
+      if (!useSample(value === 2 ? 'hihatOpen' : 'hihatClosed')) playHiHat(value !== 2);
+      break;
+    case 'tom':
+      if (value === 2) return useSample('tomLow') || playTom(95);
+      if (!useSample('tomHigh')) playTom(165);
+      break;
+    case 'floorTom':
+      if (!useSample('tomLow')) playTom(95);
+      break;
+    case 'cymbal':
+      if (!useSample('cymbal')) playCymbal();
+      break;
+    case 'ride':
+      if (!useSample('ride')) playRide();
+      break;
+    case 'cowbell':
+      playCowbell(); // Không có sample trong TR-909, giữ synthesis
+      break;
     default: break;
   }
 }
@@ -506,7 +596,8 @@ function renderSequencer() {
       step.dataset.step = i;
       step.setAttribute('type', 'button');
       step.title = (inst.id === 'hihat' || inst.id === 'hihatPedal') && val === 2 ? 'Hi-hat mở (nhấp để đổi)' :
-        inst.id === 'snare' && val === 2 ? 'Snare rimshot (nhấp để đổi)' : '';
+        inst.id === 'snare' && val === 2 ? 'Snare rimshot (nhấp để đổi)' :
+        inst.id === 'tom' && val === 2 ? 'Tom thấp (nhấp để đổi)' : '';
       step.addEventListener('click', () => toggleStep(inst.id, i));
       stepsEl.appendChild(step);
     }
@@ -537,7 +628,7 @@ function updateGridHeader() {
 function toggleStep(instrumentId, stepIndex) {
   if (!pattern[instrumentId]) pattern[instrumentId] = Array(STEPS).fill(0);
   if (stepIndex >= getStepsCount()) return;
-  const hasVariant = instrumentId === 'hihat' || instrumentId === 'hihatPedal' || instrumentId === 'snare';
+  const hasVariant = instrumentId === 'hihat' || instrumentId === 'hihatPedal' || instrumentId === 'snare' || instrumentId === 'tom';
   const current = pattern[instrumentId][stepIndex] || 0;
   if (hasVariant) {
     pattern[instrumentId][stepIndex] = current === 0 ? 1 : current === 1 ? 2 : 0;
@@ -564,7 +655,8 @@ function updateStepUI(instrumentId, stepIndex) {
     step.classList.toggle('active', !!val);
     step.classList.toggle('variant', val === 2);
     step.title = (instrumentId === 'hihat' || instrumentId === 'hihatPedal') && val === 2 ? 'Hi-hat mở (nhấp để đổi)' :
-      instrumentId === 'snare' && val === 2 ? 'Snare rimshot (nhấp để đổi)' : '';
+      instrumentId === 'snare' && val === 2 ? 'Snare rimshot (nhấp để đổi)' :
+      instrumentId === 'tom' && val === 2 ? 'Tom thấp (nhấp để đổi)' : '';
   }
 }
 
@@ -820,11 +912,11 @@ async function loadMyPresets() {
 let myPresetsCache = [];
 let myPresetsSortOrder = 'created-desc';
 
-function formatDate(iso) {
+function formatDateShort(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   const pad = n => String(n).padStart(2, '0');
-  return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  return pad(d.getDate()) + '/' + pad(d.getMonth() + 1);
 }
 
 function sortPresets(presets, order) {
@@ -843,6 +935,14 @@ function sortPresets(presets, order) {
   return arr.sort(cmp);
 }
 
+function formatOwnerEmail(email) {
+  if (!email) return '-';
+  if (email.toLowerCase().endsWith('@gmail.com')) {
+    return email.slice(0, -10);
+  }
+  return email;
+}
+
 function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSortOrder) {
   const container = document.getElementById('myPresetsList');
   const search = searchTerm.toLowerCase().trim();
@@ -853,24 +953,34 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
     container.innerHTML = presets.length === 0
       ? '<p class="rhythm-empty">Chưa có điệu nào. Nhấn Thêm để lưu nhịp hiện tại.</p>'
       : '<p class="rhythm-empty">Không tìm thấy điệu</p>';
+    updateShareButtonState();
     return;
   }
+  const header = document.createElement('div');
+  header.className = 'my-presets-list-header';
+  header.innerHTML = `
+    <span class="my-preset-col-check"><input type="checkbox" id="myPresetsSelectAll" title="Chọn tất cả"></span>
+    <span class="my-preset-col-name">Tên · User</span>
+    <span class="my-preset-col-actions"></span>
+  `;
+  container.appendChild(header);
   sorted.forEach(p => {
     const item = document.createElement('div');
     item.className = 'my-preset-item';
-    const created = formatDate(p.createdAt);
-    const updated = formatDate(p.updatedAt);
-    const datesText = created && updated && created !== updated
-      ? 'Tạo: ' + created + ' · Sửa: ' + updated
-      : created ? 'Tạo: ' + created : '';
+    const dateStr = formatDateShort(p.updatedAt || p.createdAt);
+    const userDisplay = formatOwnerEmail(p.ownerEmail);
+    const canShare = p.isOwner;
     item.innerHTML = `
-      <div class="my-preset-info">
+      <span class="my-preset-col-check">
+        ${canShare ? `<input type="checkbox" class="my-preset-checkbox" data-id="${p.id}">` : '<span class="my-preset-checkbox-placeholder"></span>'}
+      </span>
+      <div class="my-preset-info my-preset-col-name">
         <span class="my-preset-name" data-id="${p.id}">${escapeHtml(p.name)}</span>
-        ${datesText ? '<div class="my-preset-dates">' + escapeHtml(datesText) + '</div>' : ''}
+        <span class="my-preset-meta">${escapeHtml(userDisplay)}${dateStr ? ' · ' + escapeHtml(dateStr) : ''}</span>
       </div>
-      <div class="my-preset-actions">
-        <button class="btn btn-edit" data-id="${p.id}" title="Sửa">Sửa</button>
-        <button class="btn btn-danger" data-id="${p.id}" title="Xóa">Xóa</button>
+      <div class="my-preset-actions my-preset-col-actions">
+        <button class="btn btn-icon btn-play" data-id="${p.id}" title="Mở / Phát">${ICON_PLAY}</button>
+        ${p.isOwner ? `<button class="btn btn-icon btn-edit" data-id="${p.id}" title="Sửa">${ICON_EDIT}</button><button class="btn btn-icon btn-danger" data-id="${p.id}" title="Xóa">${ICON_DELETE}</button>` : ''}
       </div>
     `;
     item.querySelector('.my-preset-name').addEventListener('click', () => {
@@ -878,16 +988,137 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
       closeMyPresetsModal();
       if (!isPlaying) startPlayback();
     });
-    item.querySelector('.btn-edit').addEventListener('click', (e) => {
+    item.querySelector('.btn-play').addEventListener('click', (e) => {
       e.stopPropagation();
-      editMyPreset(p.id, p.name);
+      applyPreset(p);
+      closeMyPresetsModal();
+      if (!isPlaying) startPlayback();
     });
-    item.querySelector('.btn-danger').addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteMyPreset(p.id, p.name);
-    });
+    const editBtn = item.querySelector('.btn-edit');
+    const delBtn = item.querySelector('.btn-danger');
+    if (editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); editMyPreset(p.id, p.name); });
+    if (delBtn) delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteMyPreset(p.id, p.name); });
+    const cb = item.querySelector('.my-preset-checkbox');
+    if (cb) {
+      cb.addEventListener('change', () => updateShareButtonState());
+    }
     container.appendChild(item);
   });
+  const selectAll = document.getElementById('myPresetsSelectAll');
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      container.querySelectorAll('.my-preset-checkbox').forEach(cb => {
+        cb.checked = selectAll.checked;
+      });
+      updateShareButtonState();
+    });
+  }
+  updateShareButtonState();
+}
+
+function getSelectedPresetIds() {
+  return Array.from(document.querySelectorAll('.my-preset-checkbox:checked')).map(cb => parseInt(cb.dataset.id, 10));
+}
+
+function updateShareButtonState() {
+  const btn = document.getElementById('sharePresetsBtn');
+  if (!btn) return;
+  const ids = getSelectedPresetIds();
+  btn.disabled = ids.length === 0;
+}
+
+function openSharePresetsModal() {
+  const ids = getSelectedPresetIds();
+  if (ids.length === 0) return;
+  window._sharePresetIds = ids;
+  window._shareSelectedUser = null;
+  const modal = document.getElementById('sharePresetsModal');
+  const searchInput = document.getElementById('shareUserSearch');
+  const resultsEl = document.getElementById('shareUserResults');
+  const confirmBtn = document.getElementById('shareConfirmBtn');
+  modal.classList.add('active');
+  if (searchInput) { searchInput.value = ''; searchInput.focus(); }
+  if (resultsEl) resultsEl.innerHTML = '<p class="rhythm-empty">Gõ 2 ký tự trở lên để tìm user</p>';
+  if (confirmBtn) confirmBtn.disabled = true;
+}
+
+function closeSharePresetsModal() {
+  document.getElementById('sharePresetsModal')?.classList.remove('active');
+  window._sharePresetIds = null;
+  window._shareSelectedUser = null;
+}
+
+async function searchShareUsers(q) {
+  if (!currentUser || !q || q.length < 2) return [];
+  try {
+    const r = await fetch(API_BASE + '/api/users/search?q=' + encodeURIComponent(q), { credentials: 'include' });
+    if (r.ok) return await r.json();
+  } catch (e) { console.warn(e); }
+  return [];
+}
+
+function renderShareUserResults(users, selectedId) {
+  const el = document.getElementById('shareUserResults');
+  if (!el) return;
+  if (users.length === 0) {
+    el.innerHTML = '<p class="rhythm-empty">Không tìm thấy user</p>';
+    return;
+  }
+  window._shareUserSearchResults = users;
+  el.innerHTML = users.map((u, i) => {
+    const label = (u.name && u.name !== u.email ? u.name + ' (' + u.email + ')' : u.email);
+    const isSelected = selectedId === u.id;
+    return `<div class="share-user-item ${isSelected ? 'selected' : ''}" data-i="${i}">${escapeHtml(label)}</div>`;
+  }).join('');
+  el.querySelectorAll('.share-user-item').forEach(div => {
+    div.addEventListener('click', () => {
+      el.querySelectorAll('.share-user-item').forEach(d => d.classList.remove('selected'));
+      div.classList.add('selected');
+      const u = window._shareUserSearchResults[parseInt(div.dataset.i, 10)];
+      if (u) window._shareSelectedUser = { id: u.id, email: u.email, name: u.name };
+      document.getElementById('shareConfirmBtn').disabled = false;
+    });
+  });
+}
+
+async function confirmSharePresets() {
+  const ids = window._sharePresetIds;
+  const user = window._shareSelectedUser;
+  if (!ids || ids.length === 0 || !user) return;
+  const ok = await showConfirm('Share ' + ids.length + ' điệu với ' + (user.name || user.email) + '?', 'Share', 'Hủy', 'Xác nhận Share');
+  if (!ok) return;
+  try {
+    const r = await fetch(API_BASE + '/api/presets/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ presetIds: ids, shareWithUserId: parseInt(user.id, 10) }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) {
+      await showAlert('Đã share ' + (data.sharedCount || ids.length) + ' điệu.', 'Share thành công');
+      closeSharePresetsModal();
+      const presets = await loadMyPresets();
+      myPresetsCache = presets.map(p => ({
+        id: p.id,
+        name: p.name,
+        bpm: p.bpm,
+        timeSignature: p.timeSignature || '4/4',
+        instruments: p.instruments || {},
+        ownerEmail: p.ownerEmail,
+        ownerName: p.ownerName,
+        isOwner: p.isOwner,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      }));
+      const searchInput = document.getElementById('myPresetsSearch');
+      renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder);
+    } else {
+      await showAlert('Lỗi: ' + (data.error || r.statusText), 'Lỗi');
+    }
+  } catch (e) {
+    await showAlert('Lỗi kết nối: ' + e.message, 'Lỗi');
+  }
 }
 
 function escapeHtml(s) {
@@ -911,6 +1142,9 @@ async function openMyPresetsModal() {
     bpm: p.bpm,
     timeSignature: p.timeSignature || '4/4',
     instruments: p.instruments || {},
+    ownerEmail: p.ownerEmail,
+    ownerName: p.ownerName,
+    isOwner: p.isOwner,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   }));
@@ -934,7 +1168,7 @@ function closeMyPresetsModal() {
 
 async function addMyPreset() {
   if (!currentUser) return;
-  const name = await showPrompt('Tên nhịp điệu:', 'Nhịp mới', 'Thêm điệu');
+  const name = await showPrompt('', 'Nhịp mới', 'Thêm điệu', 'Tên nhịp điệu');
   if (!name) return;
   const preset = buildPresetFromCurrent(name);
   try {
@@ -952,6 +1186,9 @@ async function addMyPreset() {
         bpm: p.bpm,
         timeSignature: p.timeSignature || '4/4',
         instruments: p.instruments || {},
+        ownerEmail: p.ownerEmail,
+        ownerName: p.ownerName,
+        isOwner: p.isOwner,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -987,6 +1224,9 @@ async function editMyPreset(id, oldName) {
         bpm: p.bpm,
         timeSignature: p.timeSignature || '4/4',
         instruments: p.instruments || {},
+        ownerEmail: p.ownerEmail,
+        ownerName: p.ownerName,
+        isOwner: p.isOwner,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1017,6 +1257,9 @@ async function deleteMyPreset(id, name) {
         bpm: p.bpm,
         timeSignature: p.timeSignature || '4/4',
         instruments: p.instruments || {},
+        ownerEmail: p.ownerEmail,
+        ownerName: p.ownerName,
+        isOwner: p.isOwner,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1181,6 +1424,8 @@ async function init() {
   initPattern();
   renderSequencer();
 
+  loadSamples(); // Load sample WAV nền (TR-909) để có tiếng trống chân thực hơn
+
   await loadUser();
   updateAuthUI();
 
@@ -1194,14 +1439,27 @@ async function init() {
   });
   document.getElementById('myPresetsBtn')?.addEventListener('click', openMyPresetsModal);
   document.getElementById('addMyPresetBtn')?.addEventListener('click', addMyPreset);
+  document.getElementById('sharePresetsBtn')?.addEventListener('click', openSharePresetsModal);
   document.getElementById('closeMyPresets')?.addEventListener('click', closeMyPresetsModal);
+  document.getElementById('shareCancelBtn')?.addEventListener('click', closeSharePresetsModal);
+  document.getElementById('shareConfirmBtn')?.addEventListener('click', confirmSharePresets);
 
-  const myPresetsModal = document.getElementById('myPresetsModal');
-  if (myPresetsModal) {
-    myPresetsModal.addEventListener('click', (e) => {
-      if (e.target === myPresetsModal) closeMyPresetsModal();
-    });
-  }
+  let shareSearchTimeout;
+  document.getElementById('shareUserSearch')?.addEventListener('input', (e) => {
+    clearTimeout(shareSearchTimeout);
+    const q = (e.target.value || '').trim();
+    if (q.length < 2) {
+      renderShareUserResults([], null);
+      document.getElementById('shareUserResults').innerHTML = '<p class="rhythm-empty">Gõ 2 ký tự trở lên để tìm user</p>';
+      return;
+    }
+    shareSearchTimeout = setTimeout(async () => {
+      const users = await searchShareUsers(q);
+      renderShareUserResults(users, window._shareSelectedUser?.id);
+    }, 300);
+  });
+
+  // myPresetsModal: chỉ đóng khi click nút Đóng/Thêm
 
   playBtn.addEventListener('click', togglePlayback);
   document.addEventListener('keydown', (e) => {
@@ -1229,9 +1487,7 @@ async function init() {
 
   bpmInput.addEventListener('change', updateUrl);
 
-  rhythmModal.addEventListener('click', (e) => {
-    if (e.target === rhythmModal) closeRhythmModal();
-  });
+  // rhythmModal: chỉ đóng khi click nút Đóng hoặc chọn điệu
 
   if (!window.location.search.includes('data=')) {
     pattern = getBasicRockPattern();

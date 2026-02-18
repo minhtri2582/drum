@@ -43,12 +43,12 @@
         </label>
       </div>
       <div class="controls-row controls-row-actions">
-        <button id="rhythmBtn" class="btn">Điệu mẫu</button>
-        <button id="myPresetsBtn" class="btn" style="display:none">Điệu của tôi</button>
-        <button id="clearBtn" class="btn">Xoá</button>
+        <button id="rhythmBtn" class="btn btn-purple">Điệu mẫu</button>
+        <button id="myPresetsBtn" class="btn btn-blue" style="display:none">Điệu của tôi</button>
+        <button id="clearBtn" class="btn btn-outline">Xoá</button>
       </div>
       <div class="controls-row controls-row-copy">
-        <button id="copyUrlBtn" class="btn btn-secondary btn-copy">Sao chép link để lưu</button>
+        <button id="copyUrlBtn" class="btn btn-secondary btn-copy">Sao chép link share</button>
         <span id="copyStatus" class="copy-status"></span>
       </div>
     </div>
@@ -84,9 +84,25 @@
       </div>
       <div class="modal-actions" style="margin-bottom:1rem">
         <button id="addMyPresetBtn" class="btn btn-save">Thêm</button>
-        <button id="closeMyPresets" class="btn">Đóng</button>
+        <button id="sharePresetsBtn" class="btn btn-secondary" disabled title="Chọn điệu để share">Share</button>
       </div>
       <div id="myPresetsList" class="rhythm-presets"></div>
+      <div class="modal-actions modal-actions-end">
+        <button id="closeMyPresets" class="btn btn-close">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Share điệu -->
+  <div id="sharePresetsModal" class="modal">
+    <div class="modal-content modal-rhythm">
+      <h2>Share điệu</h2>
+      <input type="text" id="shareUserSearch" class="rhythm-search" placeholder="Tìm user theo email hoặc tên...">
+      <div id="shareUserResults" class="share-user-results"></div>
+      <div class="modal-actions">
+        <button id="shareConfirmBtn" class="btn btn-save" disabled>Share</button>
+        <button id="shareCancelBtn" class="btn">Hủy</button>
+      </div>
     </div>
   </div>
 
@@ -108,7 +124,7 @@
       <div id="rhythmPresets" class="rhythm-presets"></div>
       <div class="modal-actions">
         <button id="saveRhythmBtn" class="btn btn-save">Tải YAML</button>
-        <button id="closeRhythm" class="btn">Đóng</button>
+        <button id="closeRhythm" class="btn btn-close">Đóng</button>
       </div>
     </div>
   </div>

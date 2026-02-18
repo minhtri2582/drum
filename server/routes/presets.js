@@ -3,12 +3,22 @@ const router = express.Router();
 const { pool } = require('../db');
 const { requireAuth } = require('../auth');
 
-// GET /api/presets/mine - List only current user's presets
+// GET /api/presets/mine - List current user's presets + shared with user
 router.get('/mine', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, bpm, time_signature, instruments, is_public, created_at, updated_at
-       FROM presets WHERE user_id = $1 ORDER BY created_at DESC`,
+      `SELECT p.id, p.name, p.bpm, p.time_signature, p.instruments, p.is_public,
+              p.created_at, p.updated_at, p.user_id,
+              u.email AS owner_email, u.name AS owner_name
+       FROM (
+         SELECT * FROM presets WHERE user_id = $1
+         UNION
+         SELECT p2.* FROM presets p2
+         JOIN preset_shares ps ON ps.preset_id = p2.id
+         WHERE ps.shared_with_user_id = $1
+       ) p
+       LEFT JOIN users u ON u.id = p.user_id
+       ORDER BY p.created_at DESC`,
       [req.user.id]
     );
     res.json(rows.map(r => ({
@@ -18,10 +28,39 @@ router.get('/mine', requireAuth, async (req, res) => {
       timeSignature: r.time_signature,
       instruments: r.instruments,
       isPublic: r.is_public,
-      isOwner: true,
+      isOwner: r.user_id === req.user.id,
+      ownerEmail: r.owner_email,
+      ownerName: r.owner_name,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/presets/share - Share presets with a user (owner only)
+router.post('/share', requireAuth, async (req, res) => {
+  try {
+    const { presetIds, shareWithUserId } = req.body;
+    if (!Array.isArray(presetIds) || presetIds.length === 0 || !shareWithUserId) {
+      return res.status(400).json({ error: 'presetIds and shareWithUserId required' });
+    }
+    if (shareWithUserId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot share with yourself' });
+    }
+    const ids = presetIds.map(id => parseInt(id, 10)).filter(n => !isNaN(n));
+    if (ids.length === 0) {
+      return res.status(400).json({ error: 'Invalid preset IDs' });
+    }
+    const { rows: inserted } = await pool.query(
+      `INSERT INTO preset_shares (preset_id, shared_with_user_id)
+       SELECT id, $1 FROM presets WHERE id = ANY($2::int[]) AND user_id = $3
+       ON CONFLICT (preset_id, shared_with_user_id) DO NOTHING
+       RETURNING preset_id`,
+      [shareWithUserId, ids, req.user.id]
+    );
+    res.json({ ok: true, sharedCount: inserted.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
