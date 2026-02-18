@@ -47,23 +47,23 @@ docker run -p 8080:80 drum-machine:latest
 
 1. Mở [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
 2. Chọn OAuth 2.0 Client ID (loại **Web application**)
-3. Trong **Authorized redirect URIs**, thêm **chính xác**:
-   - Local: `http://localhost:3000/api/auth/google/callback`
-   - Production: `https://your-domain.com/api/auth/google/callback`
-4. Trong **Authorized JavaScript origins**, thêm: `http://localhost:3000` (hoặc domain production)
+3. Trong **Authorized redirect URIs**, thêm: `http://localhost:3000/api/auth/google/callback` (local) hoặc `https://your-domain.com/api/auth/google/callback` (production)
+4. Trong **Authorized JavaScript origins**, thêm: `http://localhost:3000` hoặc domain production
 5. Lưu và đợi vài phút để Google cập nhật
 
 ## Deploy K3s (Helm)
 
-- **Chuẩn bị** (PostgreSQL + Secrets): [docs/PREPARE-DEPLOY.md](docs/PREPARE-DEPLOY.md)
-- **Deploy đầy đủ**: [docs/DEPLOY-K3S.md](docs/DEPLOY-K3S.md)
+**Bắt buộc:** Chạy [docs/PREPARE-DEPLOY.md](docs/PREPARE-DEPLOY.md) trước (PostgreSQL + Secret).
+
+| Bước | Tài liệu |
+|------|----------|
+| Chuẩn bị (PostgreSQL + Secrets) | [docs/PREPARE-DEPLOY.md](docs/PREPARE-DEPLOY.md) |
+| Build, push và deploy | [docs/DEPLOY-K3S.md](docs/DEPLOY-K3S.md) |
 
 ```bash
-# Build và push image
+# Sau khi đã tạo PostgreSQL và Secret
 docker build -t minhtri2582/drum-machine:latest .
 docker push minhtri2582/drum-machine:latest
-
-# Deploy với Helm
 helm upgrade --install drum-machine ./helm/drum-machine \
   -f ./helm/drum-machine/values-k3s-elisoft.yaml \
   -n drum-machine --create-namespace
@@ -81,16 +81,20 @@ helm upgrade --install drum-machine ./helm/drum-machine \
 
 ```
 drum/
-├── index.html      # Giao diện chính
-├── styles.css      # CSS
-├── app.js          # Logic drum machine
+├── index.html           # Giao diện chính
+├── styles.css           # CSS
+├── app.js               # Logic drum machine
 ├── styles/
-│   └── presets.yaml  # Nhịp điệu mẫu (fallback khi không có server)
-├── server/         # Backend API
-│   ├── index.js    # Express server
-│   ├── auth.js     # Google OAuth + JWT
-│   ├── db.js       # PostgreSQL
-│   └── routes/     # API routes
+│   └── presets.yaml     # Nhịp điệu mẫu (Basic Rock, Funk, Hip Hop, …)
+├── server/              # Backend API
+│   ├── index.js         # Express server
+│   ├── auth.js          # Google OAuth + JWT
+│   ├── db.js            # PostgreSQL + schema
+│   └── routes/          # API routes
+├── docs/
+│   ├── PREPARE-DEPLOY.md   # PostgreSQL + Secret
+│   └── DEPLOY-K3S.md       # Deploy với Helm
+├── helm/drum-machine/    # Helm chart K3s
 ├── docker-compose.yaml
 └── README.md
 ```
