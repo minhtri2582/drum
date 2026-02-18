@@ -7,25 +7,51 @@ Công cụ trống điện tử trực tuyến để tạo, lưu và chỉnh s�
 - **Sequencer 16 bước** với 7 nhạc cụ: Bàn đạp hi-hat, Tom-tom, Chân tom sàn, Cymbal, Hi-hat, Trống Snare, Trống bass
 - **Phát nhạc** với điều chỉnh BPM (40–240)
 - **Lưu & chia sẻ** bằng cách sao chép link (pattern được mã hóa trong URL)
+- **Đăng nhập Google** – lưu preset riêng tư trên server
+- **Preset server** – anonymous và login: dùng preset công khai; login: dùng thêm preset riêng
 - **Nhịp điệu mẫu**: Basic Rock, Funk, Hip Hop, House, Disco
 - **Tắt âm** từng nhạc cụ bằng cách nhấp vào tên nhạc cụ
 - **Âm thanh** tổng hợp bằng Web Audio API (không cần file âm thanh)
 
 ## Chạy local
 
+**Chỉ frontend (không có auth/preset server):**
 ```bash
 cd drum
 python3 -m http.server 8765
 ```
+Mở: http://localhost:8765
 
-Mở trình duyệt tại: http://localhost:8765
+**Full stack (PostgreSQL + Google OAuth):**
+```bash
+# 1. Cấu hình: copy server/.env.example -> server/.env
+#    Điền GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, JWT_SECRET, DATABASE_URL
+
+# 2. Chạy với docker-compose
+docker-compose up -d
+
+# 3. Hoặc chạy thủ công (cần PostgreSQL):
+cd server && npm install && npm start
+```
 
 ## Docker
 
 ```bash
-docker build -t drum-machine:latest .
+docker build -t minhtri2582/drum-machine:latest .
 docker run -p 8080:80 drum-machine:latest
 ```
+
+**Lưu ý:** Cần cấu hình `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `JWT_SECRET`, `GOOGLE_CALLBACK_URL` khi deploy.
+
+### Lỗi redirect_uri_mismatch
+
+1. Mở [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
+2. Chọn OAuth 2.0 Client ID (loại **Web application**)
+3. Trong **Authorized redirect URIs**, thêm **chính xác**:
+   - Local: `http://localhost:3000/api/auth/google/callback`
+   - Production: `https://your-domain.com/api/auth/google/callback`
+4. Trong **Authorized JavaScript origins**, thêm: `http://localhost:3000` (hoặc domain production)
+5. Lưu và đợi vài phút để Google cập nhật
 
 ## Deploy K3s (Helm)
 
@@ -56,8 +82,14 @@ drum/
 ├── styles.css      # CSS
 ├── app.js          # Logic drum machine
 ├── styles/
-│   └── presets.yaml  # Nhịp điệu mẫu (Basic Rock, Funk, Hip Hop, House, Disco...)
-└── README.md       # Hướng dẫn
+│   └── presets.yaml  # Nhịp điệu mẫu (fallback khi không có server)
+├── server/         # Backend API
+│   ├── index.js    # Express server
+│   ├── auth.js     # Google OAuth + JWT
+│   ├── db.js       # PostgreSQL
+│   └── routes/     # API routes
+├── docker-compose.yaml
+└── README.md
 ```
 
 ## Thêm nhịp điệu mẫu

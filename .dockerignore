@@ -1,2 +1,6 @@
 .github
 .git
+node_modules
+.env
+*.yaml
+!styles/presets.yaml

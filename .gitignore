@@ -10,3 +10,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+server/client_secret_1018713018400-9vmgkvdbn5r1qf9ocgijb0h7f76u1u60.apps.googleusercontent.com.json
+server/.env
+server/node_modules/
+samples/

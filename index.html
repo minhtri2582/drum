@@ -2,41 +2,59 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Trống điện tử online - Drum Machine</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
-    <h1 class="title">Tri's Drum Player</h1>
-
-    <div class="controls">
-      <button id="playBtn" class="btn btn-play" aria-label="Phát">
-        <span class="play-icon">▶</span>
-      </button>
-      <div class="tempo-control">
-        <label for="bpm">BPM</label>
-        <input type="number" id="bpm" value="90" min="40" max="240" step="1">
+    <div class="header-row">
+      <h1 class="title">Tri's Drum Player</h1>
+      <div id="authArea" class="auth-area">
+        <button id="loginBtn" class="btn btn-ghost">Đăng nhập Google</button>
+        <div id="userArea" class="user-area" style="display:none">
+          <img id="userAvatar" class="user-avatar" alt="">
+          <span id="userName" class="user-name"></span>
+          <button id="logoutBtn" class="btn btn-ghost btn-sm">Đăng xuất</button>
+        </div>
       </div>
-      <div class="time-signature-control">
-        <label for="timeSignature">Nhịp</label>
-        <select id="timeSignature">
-          <option value="4/4">4/4</option>
-          <option value="3/4">3/4</option>
-          <option value="12/8">12/8</option>
-        </select>
-      </div>
-      <label class="metronome-option">
-        <input type="checkbox" id="metronomeCheck" aria-label="Metronome">
-        <span>Metronome</span>
-      </label>
-      <button id="rhythmBtn" class="btn">Điệu mẫu</button>
-      <button id="clearBtn" class="btn">Xoá</button>
     </div>
 
-    <div class="save-section">
-      <button id="copyUrlBtn" class="btn btn-secondary">Sao chép link để lưu</button>
-      <span id="copyStatus" class="copy-status"></span>
+    <div class="controls">
+      <div class="controls-row controls-row-primary">
+        <button id="playBtn" class="btn btn-play" aria-label="Phát">
+          <span class="play-icon">▶</span>
+        </button>
+        <div class="tempo-control">
+          <label for="bpm">BPM</label>
+          <input type="number" id="bpm" value="90" min="40" max="240" step="1">
+        </div>
+        <div class="time-signature-control">
+          <label for="timeSignature">Nhịp</label>
+          <select id="timeSignature">
+            <option value="4/4">4/4</option>
+            <option value="3/4">3/4</option>
+            <option value="12/8">12/8</option>
+          </select>
+        </div>
+        <label class="metronome-option">
+          <input type="checkbox" id="metronomeCheck" aria-label="Metronome">
+          <span>Metronome</span>
+        </label>
+      </div>
+      <div class="controls-row controls-row-actions">
+        <button id="rhythmBtn" class="btn">Điệu mẫu</button>
+        <button id="myPresetsBtn" class="btn" style="display:none">Điệu của tôi</button>
+        <button id="clearBtn" class="btn">Xoá</button>
+      </div>
+      <div class="controls-row controls-row-copy">
+        <button id="copyUrlBtn" class="btn btn-secondary btn-copy">Sao chép link để lưu</button>
+        <span id="copyStatus" class="copy-status"></span>
+      </div>
+    </div>
+
+    <div class="current-preset-section">
+      <span id="currentPresetName" class="current-preset-name"></span>
     </div>
 
     <div class="sequencer">
@@ -48,6 +66,40 @@
     </div>
   </div>
 
+  <!-- Modal Điệu của tôi -->
+  <div id="myPresetsModal" class="modal">
+    <div class="modal-content modal-rhythm">
+      <h2>Điệu của tôi</h2>
+      <input type="text" id="myPresetsSearch" class="rhythm-search" placeholder="Tìm điệu...">
+      <div class="my-presets-toolbar">
+        <label class="my-presets-sort-label">Sắp xếp:</label>
+        <select id="myPresetsSort" class="my-presets-sort">
+          <option value="name-asc">Tên A-Z</option>
+          <option value="name-desc">Tên Z-A</option>
+          <option value="created-desc">Mới tạo nhất</option>
+          <option value="created-asc">Cũ nhất</option>
+          <option value="updated-desc">Cập nhật gần nhất</option>
+          <option value="updated-asc">Cập nhật cũ nhất</option>
+        </select>
+      </div>
+      <div class="modal-actions" style="margin-bottom:1rem">
+        <button id="addMyPresetBtn" class="btn btn-save">Thêm</button>
+        <button id="closeMyPresets" class="btn">Đóng</button>
+      </div>
+      <div id="myPresetsList" class="rhythm-presets"></div>
+    </div>
+  </div>
+
+  <!-- Modal Dialog (alert, confirm, prompt) -->
+  <div id="dialogModal" class="modal">
+    <div class="modal-content modal-dialog">
+      <h2 id="dialogTitle" class="dialog-title"></h2>
+      <p id="dialogMessage" class="dialog-message"></p>
+      <input type="text" id="dialogInput" class="dialog-input hidden" placeholder="" autocomplete="off">
+      <div class="modal-actions dialog-actions" id="dialogActions"></div>
+    </div>
+  </div>
+
   <!-- Modal Nhịp điệu -->
   <div id="rhythmModal" class="modal">
     <div class="modal-content modal-rhythm">
@@ -55,7 +107,7 @@
       <input type="text" id="rhythmSearch" class="rhythm-search" placeholder="Tìm nhịp điệu...">
       <div id="rhythmPresets" class="rhythm-presets"></div>
       <div class="modal-actions">
-        <button id="saveRhythmBtn" class="btn btn-save">Lưu nhịp hiện tại</button>
+        <button id="saveRhythmBtn" class="btn btn-save">Tải YAML</button>
         <button id="closeRhythm" class="btn">Đóng</button>
       </div>
     </div>

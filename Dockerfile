@@ -1,6 +1,15 @@
-FROM nginx:alpine
+FROM node:20-alpine
 
-COPY index.html styles.css app.js /usr/share/nginx/html/
-COPY styles /usr/share/nginx/html/styles
+WORKDIR /app
+
+COPY server/package*.json ./server/
+RUN cd server && npm ci --omit=dev
+
+COPY index.html styles.css app.js ./
+COPY styles ./styles
+COPY server ./server
 
 EXPOSE 80
+
+ENV PORT=80
+CMD ["node", "server/index.js"]

@@ -1,0 +1,36 @@
+# Local development with PostgreSQL
+# Run: docker-compose up -d
+# Then: cd server && npm run init-db && npm start
+services:
+  app:
+    build: .
+    ports:
+      - "3000:80"
+    env_file:
+      - server/.env
+    command: node server/index.js
+    environment:
+      PORT: 80
+      DATABASE_URL: postgresql://drum:drum@db:5432/drum
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      FRONTEND_URL: http://localhost:3000
+      # Google OAuth từ server/.env (env_file)
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: drum
+      POSTGRES_PASSWORD: drum
+      POSTGRES_DB: drum
+    volumes:
+      - drum_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drum"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  drum_pgdata:
