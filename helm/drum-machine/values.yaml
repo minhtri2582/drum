@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: minhtri2582/drum-machine
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: "latest"
 
 imagePullSecrets: []
