@@ -24,7 +24,20 @@ let isPlaying = false;
 let currentStep = 0;
 let intervalId = null;
 let mutedInstruments = new Set();
+let instrumentVolumes = {}; // instrumentId -> 0..1, default 1
 let audioContext = null;
+
+const VOLUME_STORAGE = 'drum-instrument-volumes';
+
+function getInstrumentVolume(instrumentId) {
+  if (instrumentVolumes[instrumentId] !== undefined) return instrumentVolumes[instrumentId];
+  return 1;
+}
+
+function setInstrumentVolume(instrumentId, vol) {
+  instrumentVolumes[instrumentId] = Math.max(0, Math.min(1, vol));
+  try { localStorage.setItem(VOLUME_STORAGE, JSON.stringify(instrumentVolumes)); } catch (_) {}
+}
 
 // DOM elements
 const playBtn = document.getElementById('playBtn');
@@ -46,6 +59,7 @@ const API_BASE = '';
 const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 const ICON_DELETE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+const ICON_HEART = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
 
 let currentUser = null;
 
@@ -337,8 +351,8 @@ function playSampleBuffer(key, gain = 1) {
   const src = ctx.createBufferSource();
   src.buffer = buf;
   let g = gain;
-  if (key === 'hihatClosed' || key === 'hihatOpen') g = HIHAT_GAIN;
-  else if (key === 'cymbal') g = CYMBAL_GAIN;
+  if (key === 'hihatClosed' || key === 'hihatOpen') g = HIHAT_GAIN * gain;
+  else if (key === 'cymbal') g = CYMBAL_GAIN * gain;
   if (g < 1) {
     const gainNode = ctx.createGain();
     gainNode.gain.value = g;
@@ -359,7 +373,7 @@ function getAudioContext() {
   return audioContext;
 }
 
-function playKick() {
+function playKick(vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -371,14 +385,14 @@ function playKick() {
   osc.frequency.exponentialRampToValueAtTime(52, t + 0.012);
   osc.frequency.exponentialRampToValueAtTime(45, t + 0.08);
   osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.22);
-  gain.gain.setValueAtTime(1, t);
-  gain.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+  gain.gain.setValueAtTime(1 * vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.5 * vol, t + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
   osc.start(t);
   osc.stop(t + 0.22);
 }
 
-function playSnare() {
+function playSnare(vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   // Body - thân trống
@@ -390,8 +404,8 @@ function playSnare() {
   osc.frequency.setValueAtTime(220, t);
   osc.frequency.exponentialRampToValueAtTime(95, t + 0.025);
   osc.frequency.exponentialRampToValueAtTime(70, t + 0.06);
-  oscGain.gain.setValueAtTime(0.55, t);
-  oscGain.gain.exponentialRampToValueAtTime(0.15, t + 0.04);
+  oscGain.gain.setValueAtTime(0.55 * vol, t);
+  oscGain.gain.exponentialRampToValueAtTime(0.15 * vol, t + 0.04);
   oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
   osc.start(t);
   osc.stop(t + 0.1);
@@ -412,13 +426,13 @@ function playSnare() {
   noise.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
   noiseGain.connect(ctx.destination);
-  noiseGain.gain.setValueAtTime(0.5, t);
+  noiseGain.gain.setValueAtTime(0.5 * vol, t);
   noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.06);
   noise.start(t);
   noise.stop(t + 0.08);
 }
 
-function playSnareRimshot() {
+function playSnareRimshot(vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -428,7 +442,7 @@ function playSnareRimshot() {
   osc.frequency.setValueAtTime(600, t);
   osc.frequency.exponentialRampToValueAtTime(200, t + 0.02);
   osc.type = 'sine';
-  gain.gain.setValueAtTime(0.5, t);
+  gain.gain.setValueAtTime(0.5 * vol, t);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
   osc.start(t);
   osc.stop(t + 0.04);
@@ -448,13 +462,13 @@ function playSnareRimshot() {
   noise.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
   noiseGain.connect(ctx.destination);
-  noiseGain.gain.setValueAtTime(0.35, t);
+  noiseGain.gain.setValueAtTime(0.35 * vol, t);
   noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.02);
   noise.start(t);
   noise.stop(t + 0.025);
 }
 
-function playHiHat(closed = true) {
+function playHiHat(closed = true, vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   const dur = closed ? 0.035 : 0.15;
@@ -475,13 +489,13 @@ function playHiHat(closed = true) {
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(closed ? 0.14 : 0.12, t);  // Nhẹ hơn
+  gain.gain.setValueAtTime((closed ? 0.14 : 0.12) * vol, t);  // Nhẹ hơn
   gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
   noise.start(t);
   noise.stop(t + dur);
 }
 
-function playTom(freq) {
+function playTom(freq, vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -492,8 +506,8 @@ function playTom(freq) {
   osc.frequency.setValueAtTime(freq * 1.15, t);
   osc.frequency.exponentialRampToValueAtTime(freq, t + 0.015);
   osc.frequency.exponentialRampToValueAtTime(freq * 0.4, t + 0.12);
-  gain.gain.setValueAtTime(0.6, t);
-  gain.gain.exponentialRampToValueAtTime(0.2, t + 0.03);
+  gain.gain.setValueAtTime(0.6 * vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.2 * vol, t + 0.03);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
   osc.start(t);
   osc.stop(t + 0.12);
@@ -514,7 +528,7 @@ function playMetronomeClick(accent = false) {
   osc.stop(t + 0.03);
 }
 
-function playCowbell() {
+function playCowbell(vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -524,13 +538,13 @@ function playCowbell() {
   osc.type = 'triangle';
   osc.frequency.setValueAtTime(1050, t);
   osc.frequency.exponentialRampToValueAtTime(650, t + 0.025);
-  gain.gain.setValueAtTime(0.35, t);
+  gain.gain.setValueAtTime(0.35 * vol, t);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
   osc.start(t);
   osc.stop(t + 0.1);
 }
 
-function playCymbal() {
+function playCymbal(vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   const bufferSize = ctx.sampleRate * 0.35;
@@ -549,14 +563,14 @@ function playCymbal() {
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(0.14, t);  // Nhẹ hơn
-  gain.gain.exponentialRampToValueAtTime(0.04, t + 0.08);
+  gain.gain.setValueAtTime(0.14 * vol, t);  // Nhẹ hơn
+  gain.gain.exponentialRampToValueAtTime(0.04 * vol, t + 0.08);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
   noise.start(t);
   noise.stop(t + 0.35);
 }
 
-function playRide() {
+function playRide(vol = 1) {
   const ctx = getAudioContext();
   const t = ctx.currentTime;
   const bufferSize = ctx.sampleRate * 0.25;
@@ -575,8 +589,8 @@ function playRide() {
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(0.22, t);
-  gain.gain.exponentialRampToValueAtTime(0.06, t + 0.04);
+  gain.gain.setValueAtTime(0.22 * vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.06 * vol, t + 0.04);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
   noise.start(t);
   noise.stop(t + 0.25);
@@ -584,35 +598,37 @@ function playRide() {
 
 function playDrum(instrumentId, value = 1) {
   if (mutedInstruments.has(instrumentId)) return;
+  const vol = getInstrumentVolume(instrumentId);
+  if (vol <= 0) return;
   // Ưu tiên sample WAV nếu đã load
-  const useSample = (key) => playSampleBuffer(key);
+  const useSample = (key) => playSampleBuffer(key, vol);
   switch (instrumentId) {
     case 'kick':
-      if (!useSample('kick')) playKick();
+      if (!useSample('kick')) playKick(vol);
       break;
     case 'snare':
-      if (value === 2) return useSample('snareRimshot') || playSnareRimshot();
-      if (!useSample('snare')) playSnare();
+      if (value === 2) return useSample('snareRimshot') || playSnareRimshot(vol);
+      if (!useSample('snare')) playSnare(vol);
       break;
     case 'hihat':
     case 'hihatPedal':
-      if (!useSample(value === 2 ? 'hihatOpen' : 'hihatClosed')) playHiHat(value !== 2);
+      if (!useSample(value === 2 ? 'hihatOpen' : 'hihatClosed')) playHiHat(value !== 2, vol);
       break;
     case 'tom':
-      if (value === 2) return useSample('tomLow') || playTom(95);
-      if (!useSample('tomHigh')) playTom(165);
+      if (value === 2) return useSample('tomLow') || playTom(95, vol);
+      if (!useSample('tomHigh')) playTom(165, vol);
       break;
     case 'floorTom':
-      if (!useSample('tomLow')) playTom(95);
+      if (!useSample('tomLow')) playTom(95, vol);
       break;
     case 'cymbal':
-      if (!useSample('cymbal')) playCymbal();
+      if (!useSample('cymbal')) playCymbal(vol);
       break;
     case 'ride':
-      if (!useSample('ride')) playRide();
+      if (!useSample('ride')) playRide(vol);
       break;
     case 'cowbell':
-      if (!useSample('cowbell')) playCowbell();
+      if (!useSample('cowbell')) playCowbell(vol);
       break;
     default: break;
   }
@@ -631,6 +647,22 @@ function renderSequencer() {
     nameEl.textContent = t(inst.id);
     nameEl.dataset.instrument = inst.id;
     nameEl.addEventListener('click', () => toggleMute(inst.id));
+    const volWrap = document.createElement('div');
+    volWrap.className = 'instrument-volume-wrap';
+    const volInput = document.createElement('input');
+    volInput.type = 'range';
+    volInput.className = 'instrument-volume';
+    volInput.min = '0';
+    volInput.max = '100';
+    volInput.value = Math.round(getInstrumentVolume(inst.id) * 100);
+    volInput.dataset.instrument = inst.id;
+    volInput.title = t('volume') + ': ' + volInput.value + '%';
+    volInput.addEventListener('input', () => {
+      const v = parseInt(volInput.value) / 100;
+      setInstrumentVolume(inst.id, v);
+      volInput.title = t('volume') + ': ' + volInput.value + '%';
+    });
+    volWrap.appendChild(volInput);
     const stepsEl = document.createElement('div');
     stepsEl.className = 'steps steps-' + stepsCount;
     for (let i = 0; i < stepsCount; i++) {
@@ -648,6 +680,7 @@ function renderSequencer() {
       stepsEl.appendChild(step);
     }
     row.appendChild(nameEl);
+    row.appendChild(volWrap);
     row.appendChild(stepsEl);
     sequencerGrid.appendChild(row);
   });
@@ -666,7 +699,8 @@ function updateGridHeader() {
     const span = document.createElement('span');
     span.className = 'measure';
     span.textContent = m + 1;
-    span.style.gridColumn = 'span ' + colsPerMeasure;
+    const startCol = m * colsPerMeasure + 1;
+    span.style.gridColumn = startCol;
     header.appendChild(span);
   }
 }
@@ -937,6 +971,8 @@ function buildPresetFromCurrent(name) {
     timeSignature: timeSignatureSelect ? timeSignatureSelect.value : '4/4',
     instruments: {},
     isPublic: false,
+    soundSet: currentSoundSet || 'standard',
+    volumes: { ...instrumentVolumes },
   };
   INSTRUMENTS.forEach(inst => {
     const row = pattern[inst.id] || Array(STEPS).fill(0);
@@ -1014,6 +1050,7 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
   header.innerHTML = `
     <span class="my-preset-col-check"><input type="checkbox" id="myPresetsSelectAll" title="${escapeHtml(t('selectAll'))}"></span>
     <span class="my-preset-col-name">${escapeHtml(t('colNameUser'))}</span>
+    <span class="my-preset-col-like" title="${escapeHtml(t('like'))}">♥</span>
     <span class="my-preset-col-actions"></span>
   `;
   container.appendChild(header);
@@ -1025,6 +1062,10 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
     const canShare = p.isOwner;
     const starTitle = p.isFavourite ? t('unfavourite') : t('favourite');
     const starClass = p.isFavourite ? 'btn-favourite active' : 'btn-favourite';
+    const likeCount = p.likeCount ?? 0;
+    const isLiked = !!p.isLiked;
+    const likeTitle = isLiked ? t('unlike') : t('like');
+    const likeClass = 'btn-like' + (isLiked ? ' active' : '');
     item.innerHTML = `
       <span class="my-preset-col-check">
         ${canShare ? `<input type="checkbox" class="my-preset-checkbox" data-id="${p.id}">` : '<span class="my-preset-checkbox-placeholder"></span>'}
@@ -1033,22 +1074,28 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
         <span class="my-preset-name" data-id="${p.id}">${escapeHtml(p.name)}</span>
         <span class="my-preset-meta">${escapeHtml(userDisplay)}${dateStr ? ' · ' + escapeHtml(dateStr) : ''}</span>
       </div>
+      <div class="my-preset-col-like">
+        <button type="button" class="${likeClass}" data-id="${p.id}" title="${escapeHtml(likeTitle)}" aria-label="${escapeHtml(likeTitle)}">${ICON_HEART}</button>
+        <span class="btn-like-count">${likeCount}</span>
+      </div>
       <div class="my-preset-actions my-preset-col-actions">
         <button class="btn btn-icon ${starClass}" data-id="${p.id}" title="${escapeHtml(starTitle)}" aria-label="${escapeHtml(starTitle)}">⭐</button>
         <button class="btn btn-icon btn-play" data-id="${p.id}" title="${escapeHtml(t('openPlay'))}">${ICON_PLAY}</button>
         ${p.isOwner ? `<button class="btn btn-icon btn-edit" data-id="${p.id}" title="${escapeHtml(t('edit'))}">${ICON_EDIT}</button><button class="btn btn-icon btn-danger" data-id="${p.id}" title="${escapeHtml(t('delete'))}">${ICON_DELETE}</button>` : ''}
       </div>
     `;
-    item.querySelector('.my-preset-name').addEventListener('click', () => {
-      applyPreset(p);
+    item.querySelector('.my-preset-name').addEventListener('click', async () => {
+      await applyPreset(p);
       closeMyPresetsModal();
       if (!isPlaying) startPlayback();
     });
     const favBtn = item.querySelector('.btn-favourite');
     if (favBtn) favBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFavourite(p.id); });
-    item.querySelector('.btn-play').addEventListener('click', (e) => {
+    const likeBtn = item.querySelector('.btn-like');
+    if (likeBtn) likeBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleLike(p.id); });
+    item.querySelector('.btn-play').addEventListener('click', async (e) => {
       e.stopPropagation();
-      applyPreset(p);
+      await applyPreset(p);
       closeMyPresetsModal();
       if (!isPlaying) startPlayback();
     });
@@ -1095,6 +1142,24 @@ async function toggleFavourite(presetId) {
     const data = await r.json();
     const p = myPresetsCache.find(x => x.id === presetId);
     if (p) p.isFavourite = data.isFavourite;
+    const searchInput = document.getElementById('myPresetsSearch');
+    renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder, myPresetsTab);
+  } catch (e) { console.warn(e); }
+}
+
+async function toggleLike(presetId) {
+  try {
+    const r = await fetch(API_BASE + '/api/presets/' + presetId + '/like', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    const p = myPresetsCache.find(x => x.id === presetId);
+    if (p) {
+      p.isLiked = data.isLiked;
+      p.likeCount = data.likeCount ?? p.likeCount;
+    }
     const searchInput = document.getElementById('myPresetsSearch');
     renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder, myPresetsTab);
   } catch (e) { console.warn(e); }
@@ -1184,10 +1249,14 @@ async function confirmSharePresets() {
         bpm: p.bpm,
         timeSignature: p.timeSignature || '4/4',
         instruments: p.instruments || {},
+        soundSet: p.soundSet,
+        volumes: p.volumes || {},
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
         isFavourite: !!p.isFavourite,
+        likeCount: p.likeCount ?? 0,
+        isLiked: !!p.isLiked,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1222,9 +1291,11 @@ async function confirmSharePresets() {
           bpm: p.bpm,
           timeSignature: p.timeSignature || '4/4',
           instruments: p.instruments || {},
+          soundSet: p.soundSet,
           ownerEmail: p.ownerEmail,
           ownerName: p.ownerName,
           isOwner: p.isOwner,
+          isFavourite: !!p.isFavourite,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
         }));
@@ -1260,9 +1331,14 @@ async function openMyPresetsModal() {
     bpm: p.bpm,
     timeSignature: p.timeSignature || '4/4',
     instruments: p.instruments || {},
+    soundSet: p.soundSet,
+    volumes: p.volumes || {},
     ownerEmail: p.ownerEmail,
     ownerName: p.ownerName,
     isOwner: p.isOwner,
+    isFavourite: !!p.isFavourite,
+    likeCount: p.likeCount ?? 0,
+    isLiked: !!p.isLiked,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   }));
@@ -1322,10 +1398,14 @@ async function addMyPreset() {
         bpm: p.bpm,
         timeSignature: p.timeSignature || '4/4',
         instruments: p.instruments || {},
+        soundSet: p.soundSet,
+        volumes: p.volumes || {},
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
         isFavourite: !!p.isFavourite,
+        likeCount: p.likeCount ?? 0,
+        isLiked: !!p.isLiked,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1361,10 +1441,14 @@ async function editMyPreset(id, oldName) {
         bpm: p.bpm,
         timeSignature: p.timeSignature || '4/4',
         instruments: p.instruments || {},
+        soundSet: p.soundSet,
+        volumes: p.volumes || {},
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
         isFavourite: !!p.isFavourite,
+        likeCount: p.likeCount ?? 0,
+        isLiked: !!p.isLiked,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1395,10 +1479,14 @@ async function deleteMyPreset(id, name) {
         bpm: p.bpm,
         timeSignature: p.timeSignature || '4/4',
         instruments: p.instruments || {},
+        soundSet: p.soundSet,
+        volumes: p.volumes || {},
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
         isFavourite: !!p.isFavourite,
+        likeCount: p.likeCount ?? 0,
+        isLiked: !!p.isLiked,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1425,15 +1513,35 @@ function getFallbackPresets() {
   ];
 }
 
-function applyPreset(preset) {
+async function applyPreset(preset) {
   pattern = yamlPresetToPattern(preset);
   if (preset.bpm) bpmInput.value = preset.bpm;
   if (preset.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(preset.timeSignature)) {
     timeSignatureSelect.value = preset.timeSignature;
   }
+  // Restore instrument volumes from preset
+  if (preset.volumes && typeof preset.volumes === 'object') {
+    INSTRUMENTS.forEach(inst => {
+      const v = preset.volumes[inst.id];
+      if (typeof v === 'number' && v >= 0 && v <= 1) {
+        setInstrumentVolume(inst.id, v);
+      }
+    });
+  }
   updatePresetNameDisplay(preset.name);
   renderSequencer();
   updateUrl();
+
+  // Sound set: nếu preset có soundSet đã lưu và tồn tại → dùng; không thì standard
+  const soundSetSelect = document.getElementById('soundSet');
+  if (soundSetSelect) {
+    const availableSets = Array.from(soundSetSelect.options).map(o => o.value);
+    const soundToUse = (preset.soundSet && availableSets.includes(preset.soundSet)) ? preset.soundSet : 'standard';
+    currentSoundSet = soundToUse;
+    soundSetSelect.value = soundToUse;
+    localStorage.setItem(SOUND_SET_STORAGE, currentSoundSet);
+    await loadSamples(currentSoundSet);
+  }
 }
 
 function updatePresetNameDisplay(name) {
@@ -1463,8 +1571,8 @@ function renderPresetList(presets, searchTerm = '') {
       const btn = document.createElement('button');
       btn.className = 'rhythm-preset';
       btn.textContent = preset.name;
-      btn.addEventListener('click', () => {
-        applyPreset(preset);
+      btn.addEventListener('click', async () => {
+        await applyPreset(preset);
         closeRhythmModal();
         if (!isPlaying) startPlayback();
       });
@@ -1534,12 +1642,14 @@ function closeRhythmModal(stopPreview = true) {
 }
 
 async function saveCurrentRhythmAsYaml() {
-  const name = await showPrompt(t('presetName') + ':', t('newPreset'), t('downloadTitle'));
+  const name = await showPrompt('', t('newPreset'), t('downloadTitle'));
   if (!name) return;
   const preset = {
     name,
     bpm: getBpm(),
     timeSignature: timeSignatureSelect ? timeSignatureSelect.value : '4/4',
+    soundSet: currentSoundSet || 'standard',
+    volumes: Object.fromEntries(INSTRUMENTS.map(inst => [inst.id, getInstrumentVolume(inst.id)])),
     instruments: {}
   };
   INSTRUMENTS.forEach(inst => {
@@ -1559,6 +1669,13 @@ async function saveCurrentRhythmAsYaml() {
 
 // Init
 async function init() {
+  try {
+    const stored = localStorage.getItem(VOLUME_STORAGE);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === 'object') instrumentVolumes = parsed;
+    }
+  } catch (_) {}
   loadFromUrl();
   initPattern();
   renderSequencer();

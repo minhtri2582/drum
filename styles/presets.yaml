@@ -1,9 +1,18 @@
 # Danh sách nhịp điệu mẫu - Drum Machine
 # Các điệu phổ biến tại Việt Nam
+#
+# volumes (tùy chọn): âm lượng từng nhạc cụ 0-1, mặc định 1
+#   Ví dụ: volumes: { kick: 1, snare: 0.8, hihat: 0.6, cymbal: 0.5, ... }
+#   Nhạc cụ: hihatPedal, tom, floorTom, cymbal, ride, cowbell, hihat, snare, kick
+#
 presets:
   - name: Bolero
     bpm: 76
     timeSignature: "4/4"
+    volumes:
+      kick: 1
+      snare: 0.9
+      hihat: 0.7
     instruments:
       kick: [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0]
       snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0]

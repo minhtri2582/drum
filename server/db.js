@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS presets (
   time_signature VARCHAR(10) DEFAULT '4/4',
   instruments JSONB NOT NULL DEFAULT '{}',
   is_public BOOLEAN DEFAULT false,
+  sound_set VARCHAR(64) DEFAULT 'standard',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -47,12 +48,24 @@ CREATE TABLE IF NOT EXISTS preset_favourites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_preset_favourites_user ON preset_favourites(user_id);
+
+CREATE TABLE IF NOT EXISTS preset_likes (
+  preset_id INTEGER NOT NULL REFERENCES presets(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (preset_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_preset_likes_preset ON preset_likes(preset_id);
+CREATE INDEX IF NOT EXISTS idx_preset_likes_user ON preset_likes(user_id);
 `;
 
 async function initSchema() {
   const client = await pool.connect();
   try {
     await client.query(schema);
+    await client.query(`ALTER TABLE presets ADD COLUMN IF NOT EXISTS sound_set VARCHAR(64) DEFAULT 'standard'`);
+    await client.query(`ALTER TABLE presets ADD COLUMN IF NOT EXISTS volumes JSONB DEFAULT '{}'`);
   } finally {
     client.release();
   }
