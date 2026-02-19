@@ -11,8 +11,10 @@ const presetRoutes = require('./routes/presets');
 const meRoutes = require('./routes/me');
 const usersRoutes = require('./routes/users');
 
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
+const ROOT = path.join(__dirname, '..');
 
 app.disable('x-powered-by');
 
@@ -36,6 +38,18 @@ app.use('/api/users', usersRoutes);
 app.use(express.static(path.join(__dirname, '..')));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+app.get('/api/audio/sets', (req, res) => {
+  try {
+    const audioPath = path.join(ROOT, 'audio');
+    if (!fs.existsSync(audioPath)) return res.json([]);
+    const entries = fs.readdirSync(audioPath, { withFileTypes: true });
+    const folders = entries.filter(e => e.isDirectory()).map(e => e.name);
+    res.json(folders.sort());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));

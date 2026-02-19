@@ -334,6 +334,28 @@ body {
   cursor: pointer;
 }
 
+.sound-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sound-control label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.sound-control select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 100px;
+}
+
 .metronome-option {
   display: flex;
   align-items: center;

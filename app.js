@@ -264,9 +264,7 @@ function initPattern() {
   });
 }
 
-// Sample WAV - Pearl Master Studio (Oramics Sampled, CC BY 3.0)
-// Bộ trống jazz hãng Pearl - https://oramics.github.io/sampled/DRUMS/pearl-master-studio/
-const SAMPLE_BASE = 'https://oramics.github.io/sampled/DRUMS/pearl-master-studio/samples/';
+// Sample - local audio/{folder}/ (Pearl Master Studio CC BY 3.0 + TR-505 cowbell)
 const SAMPLE_KEYS = {
   kick: 'kick-01.wav',
   snare: 'snare-03.wav',        // Snare mềm, articulate (jazz)
@@ -277,35 +275,56 @@ const SAMPLE_KEYS = {
   tomLow: 'tom-03.wav',
   cymbal: 'crash-02.wav',       // Crash nhẹ hơn
   ride: 'ride-02.wav',          // Ride jazz, warm
-  cowbell: null                 // Load từ TR-505 (SAMPLE_EXTRA)
-};
-const SAMPLE_EXTRA = {
-  cowbell: 'https://oramics.github.io/sampled/DM/TR-505/samples/tr505-cowb-h.wav'
+  cowbell: 'cowbell.wav'
 };
 let sampleBuffers = {};
-let samplesLoaded = false;
+let currentSoundSet = 'standard';
+const SOUND_SET_STORAGE = 'drum-sound-set';
 
-async function loadSamples() {
-  if (samplesLoaded) return;
+async function loadSamples(folder) {
+  folder = folder || currentSoundSet;
   const ctx = getAudioContext();
+  const base = 'audio/' + folder + '/';
+  sampleBuffers = {};
   const tasks = [];
   for (const key of Object.keys(SAMPLE_KEYS)) {
     const file = SAMPLE_KEYS[key];
-    const url = file ? SAMPLE_BASE + file : SAMPLE_EXTRA[key];
-    if (!url) continue;
+    if (!file) continue;
+    const url = base + file;
     tasks.push((async () => {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Sample fetch failed: ' + key);
-      const arrayBuffer = await res.arrayBuffer();
-      sampleBuffers[key] = await ctx.decodeAudioData(arrayBuffer);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const arrayBuffer = await res.arrayBuffer();
+        sampleBuffers[key] = await ctx.decodeAudioData(arrayBuffer);
+      } catch (e) {
+        console.warn('Sample load failed:', key, e.message);
+      }
     })());
   }
   try {
     await Promise.all(tasks);
-    samplesLoaded = true;
   } catch (e) {
     console.warn('Drum samples load failed, using synthesis:', e.message);
   }
+}
+
+async function loadSoundSets() {
+  try {
+    const r = await fetch(API_BASE + '/api/audio/sets', { credentials: 'include' });
+    if (r.ok) {
+      const sets = await r.json();
+      if (Array.isArray(sets) && sets.length > 0) return sets;
+    }
+  } catch (e) {}
+  try {
+    const r = await fetch('audio/sets.json');
+    if (r.ok) {
+      const data = await r.json();
+      return Array.isArray(data) ? data : ['standard'];
+    }
+  } catch (e) {}
+  return ['standard'];
 }
 
 const HIHAT_GAIN = 0.55;   // Hi-hat nhẹ hơn (0–1)
@@ -1544,7 +1563,19 @@ async function init() {
   initPattern();
   renderSequencer();
 
-  loadSamples(); // Load sample WAV nền (TR-909) để có tiếng trống chân thực hơn
+  const soundSetSelect = document.getElementById('soundSet');
+  if (soundSetSelect) {
+    const sets = await loadSoundSets();
+    currentSoundSet = localStorage.getItem(SOUND_SET_STORAGE) || 'standard';
+    if (!sets.includes(currentSoundSet)) currentSoundSet = (sets.includes('standard') ? 'standard' : sets[0]) || 'standard';
+    soundSetSelect.innerHTML = sets.map(s => `<option value="${escapeHtml(s)}" ${s === currentSoundSet ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('');
+    soundSetSelect.addEventListener('change', async () => {
+      currentSoundSet = soundSetSelect.value;
+      localStorage.setItem(SOUND_SET_STORAGE, currentSoundSet);
+      await loadSamples(currentSoundSet);
+    });
+  }
+  await loadSamples(currentSoundSet);
 
   window.onLanguageChange = () => {
     renderSequencer();

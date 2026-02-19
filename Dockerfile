@@ -7,6 +7,8 @@ RUN cd server && npm ci --omit=dev
 
 COPY index.html styles.css app.js i18n.js ./
 COPY styles ./styles
+COPY audio ./audio
+RUN mkdir -p audio/standard
 COPY server ./server
 
 EXPOSE 80
