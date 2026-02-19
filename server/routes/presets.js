@@ -55,6 +55,8 @@ router.post('/:id/favourite', requireAuth, async (req, res) => {
         SELECT p.id FROM presets p
         JOIN preset_shares ps ON ps.preset_id = p.id
         WHERE p.id = $1 AND ps.shared_with_user_id = $2
+        UNION
+        SELECT id FROM presets WHERE id = $1 AND is_public = true AND user_id != $2
       ) x`,
       [presetId, req.user.id]
     );
