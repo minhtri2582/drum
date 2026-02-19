@@ -1031,12 +1031,12 @@ body {
 }
 
 .btn-like:hover {
-  color: #e74c3c;
+  color: #0a84ff;
   transform: scale(1.05);
 }
 
 .btn-like.active {
-  color: #e74c3c;
+  color: #0a84ff;
 }
 
 .btn-like-count {

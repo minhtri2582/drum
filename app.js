@@ -59,7 +59,7 @@ const API_BASE = '';
 const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 const ICON_DELETE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-const ICON_HEART = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+const ICON_LIKE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>';
 
 let currentUser = null;
 
@@ -1050,7 +1050,7 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
   header.innerHTML = `
     <span class="my-preset-col-check"><input type="checkbox" id="myPresetsSelectAll" title="${escapeHtml(t('selectAll'))}"></span>
     <span class="my-preset-col-name">${escapeHtml(t('colNameUser'))}</span>
-    <span class="my-preset-col-like" title="${escapeHtml(t('like'))}">♥</span>
+    <span class="my-preset-col-like" title="${escapeHtml(t('like'))}">${ICON_LIKE}</span>
     <span class="my-preset-col-actions"></span>
   `;
   container.appendChild(header);
@@ -1075,7 +1075,7 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
         <span class="my-preset-meta">${escapeHtml(userDisplay)}${dateStr ? ' · ' + escapeHtml(dateStr) : ''}</span>
       </div>
       <div class="my-preset-col-like">
-        <button type="button" class="${likeClass}" data-id="${p.id}" title="${escapeHtml(likeTitle)}" aria-label="${escapeHtml(likeTitle)}">${ICON_HEART}</button>
+        <button type="button" class="${likeClass}" data-id="${p.id}" title="${escapeHtml(likeTitle)}" aria-label="${escapeHtml(likeTitle)}">${ICON_LIKE}</button>
         <span class="btn-like-count">${likeCount}</span>
       </div>
       <div class="my-preset-actions my-preset-col-actions">
