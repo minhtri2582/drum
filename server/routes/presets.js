@@ -17,6 +17,8 @@ router.get('/mine', requireAuth, async (req, res) => {
          SELECT p2.* FROM presets p2
          JOIN preset_shares ps ON ps.preset_id = p2.id
          WHERE ps.shared_with_user_id = $1
+         UNION
+         SELECT * FROM presets WHERE is_public = true AND user_id != $1
        ) p
        LEFT JOIN users u ON u.id = p.user_id
        ORDER BY p.created_at DESC`,

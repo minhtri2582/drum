@@ -112,6 +112,32 @@ body {
 .login-prompt {
   display: flex;
   align-items: center;
+  position: relative;
+}
+
+.login-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  max-width: 280px;
+  white-space: normal;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.login-prompt:hover .login-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .user-area {
