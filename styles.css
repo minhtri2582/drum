@@ -570,8 +570,8 @@ body {
   gap: 2px;
 }
 
-.steps-header-24 { grid-template-columns: repeat(24, 1fr); min-width: 600px; }
-.steps-header-32 { grid-template-columns: repeat(32, 1fr); min-width: 960px; }
+.steps-header-24 { grid-template-columns: repeat(24, 1fr); min-width: 480px; }
+.steps-header-32 { grid-template-columns: repeat(32, 1fr); min-width: 640px; }
 
 .measure {
   font-size: 0.75rem;
@@ -622,13 +622,13 @@ body {
   flex: 1;
 }
 
-.steps-24 { grid-template-columns: repeat(24, 1fr); min-width: 600px; }
-.steps-32 { grid-template-columns: repeat(32, 1fr); min-width: 960px; }
+.steps-24 { grid-template-columns: repeat(24, 1fr); min-width: 480px; }
+.steps-32 { grid-template-columns: repeat(32, 1fr); min-width: 640px; }
 
 .step {
   aspect-ratio: 1;
-  min-width: 24px;
-  max-width: 36px;
+  min-width: 20px;
+  max-width: 26px;
   width: 100%;
   background: var(--cell-inactive);
   border: none;
@@ -721,8 +721,8 @@ body {
 }
 
 .modal-rhythm {
-  min-width: 520px;
-  max-width: 90vw;
+  min-width: 380px;
+  max-width: 480px;
 }
 
 /* Dialog modal (alert, confirm, prompt) */
