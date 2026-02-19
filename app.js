@@ -938,7 +938,7 @@ async function loadMyPresets() {
 
 let myPresetsCache = [];
 let myPresetsSortOrder = 'updated-desc';
-let myPresetsTab = 'mine'; // 'mine' | 'shared'
+let myPresetsTab = 'mine'; // 'mine' | 'favourite' | 'shared'
 
 function formatDateShort(iso) {
   if (!iso) return '';
@@ -974,14 +974,18 @@ function formatOwnerEmail(email) {
 function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSortOrder, tab = myPresetsTab) {
   const container = document.getElementById('myPresetsList');
   const search = searchTerm.toLowerCase().trim();
-  let filtered = tab === 'mine' ? presets.filter(p => p.isOwner) : presets.filter(p => !p.isOwner);
+  let filtered;
+  if (tab === 'mine') filtered = presets.filter(p => p.isOwner);
+  else if (tab === 'favourite') filtered = presets.filter(p => p.isFavourite);
+  else filtered = presets.filter(p => !p.isOwner);
   filtered = search ? filtered.filter(p => p.name.toLowerCase().includes(search)) : filtered;
   const sorted = sortPresets(filtered, sortOrder);
   container.innerHTML = '';
   if (sorted.length === 0) {
-    const empty = tab === 'mine'
-      ? (presets.filter(p => p.isOwner).length === 0 ? t('emptyMine') : t('notFound'))
-      : (presets.filter(p => !p.isOwner).length === 0 ? t('emptyShared') : t('notFound'));
+    let empty;
+    if (tab === 'mine') empty = presets.filter(p => p.isOwner).length === 0 ? t('emptyMine') : t('notFound');
+    else if (tab === 'favourite') empty = presets.filter(p => p.isFavourite).length === 0 ? t('emptyFavourite') : t('notFound');
+    else empty = presets.filter(p => !p.isOwner).length === 0 ? t('emptyShared') : t('notFound');
     container.innerHTML = '<p class="rhythm-empty">' + empty + '</p>';
     updateShareButtonState();
     return;
@@ -1000,6 +1004,8 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
     const dateStr = formatDateShort(p.updatedAt || p.createdAt);
     const userDisplay = formatOwnerEmail(p.ownerEmail);
     const canShare = p.isOwner;
+    const starTitle = p.isFavourite ? t('unfavourite') : t('favourite');
+    const starClass = p.isFavourite ? 'btn-favourite active' : 'btn-favourite';
     item.innerHTML = `
       <span class="my-preset-col-check">
         ${canShare ? `<input type="checkbox" class="my-preset-checkbox" data-id="${p.id}">` : '<span class="my-preset-checkbox-placeholder"></span>'}
@@ -1009,6 +1015,7 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
         <span class="my-preset-meta">${escapeHtml(userDisplay)}${dateStr ? ' · ' + escapeHtml(dateStr) : ''}</span>
       </div>
       <div class="my-preset-actions my-preset-col-actions">
+        <button class="btn btn-icon ${starClass}" data-id="${p.id}" title="${escapeHtml(starTitle)}" aria-label="${escapeHtml(starTitle)}">⭐</button>
         <button class="btn btn-icon btn-play" data-id="${p.id}" title="${escapeHtml(t('openPlay'))}">${ICON_PLAY}</button>
         ${p.isOwner ? `<button class="btn btn-icon btn-edit" data-id="${p.id}" title="${escapeHtml(t('edit'))}">${ICON_EDIT}</button><button class="btn btn-icon btn-danger" data-id="${p.id}" title="${escapeHtml(t('delete'))}">${ICON_DELETE}</button>` : ''}
       </div>
@@ -1018,6 +1025,8 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
       closeMyPresetsModal();
       if (!isPlaying) startPlayback();
     });
+    const favBtn = item.querySelector('.btn-favourite');
+    if (favBtn) favBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFavourite(p.id); });
     item.querySelector('.btn-play').addEventListener('click', (e) => {
       e.stopPropagation();
       applyPreset(p);
@@ -1055,6 +1064,21 @@ function updateShareButtonState() {
   if (!btn) return;
   const ids = getSelectedPresetIds();
   btn.disabled = ids.length === 0;
+}
+
+async function toggleFavourite(presetId) {
+  try {
+    const r = await fetch(API_BASE + '/api/presets/' + presetId + '/favourite', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    const p = myPresetsCache.find(x => x.id === presetId);
+    if (p) p.isFavourite = data.isFavourite;
+    const searchInput = document.getElementById('myPresetsSearch');
+    renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder, myPresetsTab);
+  } catch (e) { console.warn(e); }
 }
 
 function openSharePresetsModal() {
@@ -1144,6 +1168,7 @@ async function confirmSharePresets() {
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
+        isFavourite: !!p.isFavourite,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1227,27 +1252,22 @@ async function openMyPresetsModal() {
     searchInput.oninput = () => renderMyPresetsList(myPresetsCache, searchInput.value, myPresetsSortOrder, myPresetsTab);
   }
   const tabMine = document.getElementById('tabMine');
+  const tabFavourite = document.getElementById('tabFavourite');
   const tabShared = document.getElementById('tabShared');
-  if (tabMine) {
-    tabMine.onclick = () => {
-      myPresetsTab = 'mine';
-      tabMine.classList.add('active');
-      tabMine.setAttribute('aria-selected', 'true');
-      tabShared?.classList.remove('active');
-      tabShared?.setAttribute('aria-selected', 'false');
-      renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder, myPresetsTab);
-    };
-  }
-  if (tabShared) {
-    tabShared.onclick = () => {
-      myPresetsTab = 'shared';
-      tabShared.classList.add('active');
-      tabShared.setAttribute('aria-selected', 'true');
-      tabMine?.classList.remove('active');
-      tabMine?.setAttribute('aria-selected', 'false');
-      renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder, myPresetsTab);
-    };
-  }
+  const setActiveTab = (tab) => {
+    myPresetsTab = tab;
+    [tabMine, tabFavourite, tabShared].forEach((el, i) => {
+      const t = ['mine', 'favourite', 'shared'][i];
+      if (el) {
+        el.classList.toggle('active', t === tab);
+        el.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+      }
+    });
+    renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder, myPresetsTab);
+  };
+  if (tabMine) tabMine.onclick = () => setActiveTab('mine');
+  if (tabFavourite) tabFavourite.onclick = () => setActiveTab('favourite');
+  if (tabShared) tabShared.onclick = () => setActiveTab('shared');
   document.querySelectorAll('#myPresetsSortIcons .sort-icon').forEach(btn => {
     btn.onclick = () => {
       myPresetsSortOrder = btn.dataset.order;
@@ -1286,6 +1306,7 @@ async function addMyPreset() {
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
+        isFavourite: !!p.isFavourite,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1324,6 +1345,7 @@ async function editMyPreset(id, oldName) {
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
+        isFavourite: !!p.isFavourite,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));
@@ -1357,6 +1379,7 @@ async function deleteMyPreset(id, name) {
         ownerEmail: p.ownerEmail,
         ownerName: p.ownerName,
         isOwner: p.isOwner,
+        isFavourite: !!p.isFavourite,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       }));

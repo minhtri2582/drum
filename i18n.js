@@ -31,7 +31,11 @@ const translations = {
     // My Presets modal
     myPresetsTitle: 'Điệu của tôi',
     tabMine: 'Của tôi',
+    tabFavourite: 'Favourite',
     tabShared: 'Share',
+    emptyFavourite: 'Chưa có điệu yêu thích. Nhấn ⭐ trên điệu để thêm.',
+    favourite: 'Yêu thích',
+    unfavourite: 'Bỏ yêu thích',
     searchPresets: 'Tìm điệu...',
     sortNameAsc: 'Tên A-Z',
     sortNameDesc: 'Tên Z-A',
@@ -131,7 +135,11 @@ const translations = {
 
     myPresetsTitle: 'My Presets',
     tabMine: 'Mine',
+    tabFavourite: 'Favourite',
     tabShared: 'Shared',
+    emptyFavourite: 'No favourites yet. Click ⭐ on a preset to add.',
+    favourite: 'Favourite',
+    unfavourite: 'Unfavourite',
     searchPresets: 'Search presets...',
     sortNameAsc: 'Name A-Z',
     sortNameDesc: 'Name Z-A',

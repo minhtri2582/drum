@@ -892,6 +892,20 @@ body {
   color: var(--red);
 }
 
+.btn-icon.btn-favourite {
+  background: transparent !important;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+.btn-icon.btn-favourite:hover,
+.btn-icon.btn-favourite.active {
+  opacity: 1;
+  color: #f5c518;
+}
+.btn-icon.btn-favourite:hover {
+  background: rgba(245, 197, 24, 0.2) !important;
+}
+
 .modal-actions-end {
   margin-top: 1rem;
   padding-top: 1rem;

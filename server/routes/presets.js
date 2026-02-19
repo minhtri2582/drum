@@ -9,7 +9,8 @@ router.get('/mine', requireAuth, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT p.id, p.name, p.bpm, p.time_signature, p.instruments, p.is_public,
               p.created_at, p.updated_at, p.user_id,
-              u.email AS owner_email, u.name AS owner_name
+              u.email AS owner_email, u.name AS owner_name,
+              EXISTS(SELECT 1 FROM preset_favourites pf WHERE pf.preset_id = p.id AND pf.user_id = $1) AS is_favourite
        FROM (
          SELECT * FROM presets WHERE user_id = $1
          UNION
@@ -29,11 +30,43 @@ router.get('/mine', requireAuth, async (req, res) => {
       instruments: r.instruments,
       isPublic: r.is_public,
       isOwner: r.user_id === req.user.id,
+      isFavourite: !!r.is_favourite,
       ownerEmail: r.owner_email,
       ownerName: r.owner_name,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/presets/:id/favourite - Toggle favourite (user must have access: own or shared)
+router.post('/:id/favourite', requireAuth, async (req, res) => {
+  try {
+    const presetId = parseInt(req.params.id, 10);
+    if (isNaN(presetId)) return res.status(400).json({ error: 'Invalid preset ID' });
+    const { rows: access } = await pool.query(
+      `SELECT 1 FROM (
+        SELECT id FROM presets WHERE id = $1 AND user_id = $2
+        UNION
+        SELECT p.id FROM presets p
+        JOIN preset_shares ps ON ps.preset_id = p.id
+        WHERE p.id = $1 AND ps.shared_with_user_id = $2
+      ) x`,
+      [presetId, req.user.id]
+    );
+    if (access.length === 0) return res.status(404).json({ error: 'Not found' });
+    const { rows: existing } = await pool.query(
+      'SELECT 1 FROM preset_favourites WHERE preset_id = $1 AND user_id = $2',
+      [presetId, req.user.id]
+    );
+    if (existing.length > 0) {
+      await pool.query('DELETE FROM preset_favourites WHERE preset_id = $1 AND user_id = $2', [presetId, req.user.id]);
+      return res.json({ isFavourite: false });
+    }
+    await pool.query('INSERT INTO preset_favourites (preset_id, user_id) VALUES ($1, $2)', [presetId, req.user.id]);
+    res.json({ isFavourite: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
