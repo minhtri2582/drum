@@ -58,3 +58,8 @@ jobs:
           helm upgrade --install drum-machine ./helm/drum-machine \
             -f ./helm/drum-machine/values-k3s-elisoft.yaml \
             -n drum-machine --create-namespace
+
+      - name: Force replace pod (rollout restart)
+        run: |
+          kubectl rollout restart deployment/drum-machine -n drum-machine
+          kubectl rollout status deployment/drum-machine -n drum-machine --timeout=120s

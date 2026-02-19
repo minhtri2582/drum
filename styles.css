@@ -21,6 +21,8 @@
   --blue-hover: #409cff;
   --purple: #bf5af2;
   --purple-hover: #d48cf7;
+  --teal: #64d2ff;
+  --teal-hover: #8ee0ff;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.2);
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
@@ -85,10 +87,31 @@ body {
   color: var(--text-primary);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lang-switcher {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.lang-switcher .lang-btn.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
 .auth-area {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.login-prompt {
+  display: flex;
+  align-items: center;
 }
 
 .user-area {
@@ -182,12 +205,12 @@ body {
 }
 
 .current-preset-name:empty::after {
-  content: "Chưa chọn điệu";
+  content: attr(data-empty);
   font-style: italic;
 }
 
 .current-preset-name:not(:empty)::before {
-  content: "Điệu đang dùng: ";
+  content: attr(data-preset-label);
   font-weight: 500;
   color: var(--text-secondary);
   margin-right: 0.25rem;
@@ -301,67 +324,100 @@ body {
   accent-color: var(--accent);
 }
 
-.btn-secondary {
-  background: var(--blue);
-  color: white;
+/* === Semantic button colors by function ===
+   btn-primary: Accent - main action (Play)
+   btn-success: Green - save, add, confirm, export (Sao chép link, Thêm)
+   btn-download: Teal - tải xuống file
+   btn-info: Blue - share, user data (Điệu của tôi, Share)
+   btn-browse: Purple - browse (Điệu mẫu)
+   btn-danger: Red - delete, clear (Xoá, Xóa)
+   btn-close: Outline - close, cancel (Đóng, Hủy)
+   btn-edit: Accent - edit (Sửa)
+   btn-ghost: Transparent - auth (Login, Logout)
+*/
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
 }
 
-.btn-secondary:hover {
-  background: var(--blue-hover);
-}
-
-.btn-blue {
-  background: var(--blue);
-  color: white;
-}
-
-.btn-blue:hover {
-  background: var(--blue-hover);
-}
-
-.btn-purple {
-  background: var(--purple);
-  color: white;
-}
-
-.btn-purple:hover {
-  background: var(--purple-hover);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-
-.btn-outline:hover {
-  background: var(--cell-inactive);
-  color: var(--text-primary);
-}
-
-.btn-close {
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-
-.btn-close:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
-}
-
-.btn-save {
+/* Success: save, add, confirm, export */
+.btn-success {
   background: var(--green);
   color: white;
 }
-
-.btn-save:hover {
+.btn-success:hover {
   background: var(--green-hover);
 }
 
-#sharePresetsBtn:disabled {
-  opacity: 0.4;
+/* Info: share, user presets */
+.btn-info {
+  background: var(--blue);
+  color: white;
+}
+.btn-info:hover {
+  background: var(--blue-hover);
+}
+
+/* Browse: browse presets */
+.btn-browse {
+  background: var(--purple);
+  color: white;
+}
+.btn-browse:hover {
+  background: var(--purple-hover);
+}
+
+/* Danger: delete, clear */
+.btn-danger {
+  background: var(--red);
+  color: white;
+}
+.btn-danger:hover {
+  background: var(--red-hover);
+}
+
+/* Close: close, cancel - màu đỏ */
+.btn-close {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+.btn-close:hover {
+  background: rgba(255, 69, 58, 0.2);
+  color: var(--red-hover);
+  border-color: var(--red-hover);
+}
+
+/* Edit: edit action */
+.btn-edit {
+  background: var(--accent);
+  color: #000;
+}
+.btn-edit:hover {
+  background: var(--accent-hover);
+}
+
+/* Download: tải xuống file */
+.btn-download {
+  background: var(--teal);
+  color: #000;
+}
+.btn-download:hover {
+  background: var(--teal-hover);
+}
+
+/* Legacy aliases for compatibility */
+.btn-save { background: var(--green); color: white; }
+.btn-save:hover { background: var(--green-hover); }
+.btn-secondary { background: var(--blue); color: white; }
+.btn-secondary:hover { background: var(--blue-hover); }
+
+/* Disabled state for all buttons */
+.btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -688,6 +744,52 @@ body {
   background: var(--cell-inactive);
 }
 
+.my-presets-tabs {
+  display: inline-flex;
+  padding: 3px;
+  gap: 0;
+  margin-bottom: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.my-preset-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.my-preset-tab:hover {
+  background: var(--cell-inactive);
+  color: var(--text-primary);
+}
+
+.my-preset-tab.active {
+  background: var(--accent);
+  color: #000;
+  box-shadow: var(--shadow-subtle);
+}
+
+.my-preset-tab .tab-icon {
+  font-size: 0.95em;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.my-preset-tab.active .tab-icon {
+  opacity: 1;
+}
+
 .my-presets-toolbar {
   display: flex;
   align-items: center;
@@ -695,19 +797,51 @@ body {
   margin-bottom: 0.75rem;
 }
 
-.my-presets-sort-label {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+.my-presets-sort-icons {
+  display: flex;
+  gap: 0.25rem;
 }
 
-.my-presets-sort {
+.my-presets-sort-icons .sort-icon {
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  background: var(--bg-elevated);
-  color: var(--text-primary);
+  font-size: 0.8rem;
+  min-width: auto;
+}
+
+.my-presets-sort-icons .sort-icon.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.share-mode-options {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.share-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.share-mode-option input {
+  accent-color: var(--accent);
+}
+
+.share-user-section {
+  margin-bottom: 1rem;
+}
+
+.share-user-section.hidden {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
 }
 
 .my-preset-actions {
@@ -749,9 +883,13 @@ body {
   color: var(--blue);
 }
 
+.btn-icon.btn-danger {
+  background: transparent !important;
+  color: var(--text-secondary);
+}
 .btn-icon.btn-danger:hover {
-  background: rgba(255, 69, 58, 0.25);
-  color: var(--red-hover);
+  background: rgba(255, 69, 58, 0.25) !important;
+  color: var(--red);
 }
 
 .modal-actions-end {
@@ -852,16 +990,7 @@ body {
   color: var(--text-primary);
 }
 
-.btn-danger {
-  color: var(--red);
-  border: none;
-  background: transparent;
-}
-
-.btn-danger:hover {
-  background: rgba(255, 69, 58, 0.2);
-  color: var(--red-hover);
-}
+/* btn-danger full: see semantic block above; icon variant above */
 
 #closeSettings,
 #closeRhythm {

@@ -10,12 +10,20 @@
   <div class="container">
     <div class="header-row">
       <h1 class="title">Tri's Drum Player</h1>
-      <div id="authArea" class="auth-area">
-        <button id="loginBtn" class="btn btn-ghost">Đăng nhập Google</button>
-        <div id="userArea" class="user-area" style="display:none">
-          <img id="userAvatar" class="user-avatar" alt="">
-          <span id="userName" class="user-name"></span>
-          <button id="logoutBtn" class="btn btn-ghost btn-sm">Đăng xuất</button>
+      <div class="header-actions">
+        <div class="lang-switcher">
+          <button type="button" class="btn btn-ghost btn-sm lang-btn" data-lang="vi" title="Tiếng Việt">VI</button>
+          <button type="button" class="btn btn-ghost btn-sm lang-btn" data-lang="en" title="English">EN</button>
+        </div>
+        <div id="authArea" class="auth-area">
+          <div id="loginPrompt" class="login-prompt">
+            <button id="loginBtn" class="btn btn-ghost" data-i18n="loginGoogle" data-i18n-title="loginTooltip">Đăng nhập Google</button>
+          </div>
+          <div id="userArea" class="user-area" style="display:none">
+            <img id="userAvatar" class="user-avatar" alt="">
+            <span id="userName" class="user-name"></span>
+            <button id="logoutBtn" class="btn btn-ghost btn-sm" data-i18n="logout">Đăng xuất</button>
+          </div>
         </div>
       </div>
     </div>
@@ -26,11 +34,11 @@
           <span class="play-icon">▶</span>
         </button>
         <div class="tempo-control">
-          <label for="bpm">BPM</label>
+          <label for="bpm" data-i18n="bpm">BPM</label>
           <input type="number" id="bpm" value="90" min="40" max="240" step="1">
         </div>
         <div class="time-signature-control">
-          <label for="timeSignature">Nhịp</label>
+          <label for="timeSignature" data-i18n="timeSig">Nhịp</label>
           <select id="timeSignature">
             <option value="4/4">4/4</option>
             <option value="3/4">3/4</option>
@@ -38,23 +46,24 @@
           </select>
         </div>
         <label class="metronome-option">
-          <input type="checkbox" id="metronomeCheck" aria-label="Metronome">
-          <span>Metronome</span>
+          <input type="checkbox" id="metronomeCheck" aria-label="Click">
+          <span data-i18n="metronome">Metronome</span>
         </label>
       </div>
       <div class="controls-row controls-row-actions">
-        <button id="rhythmBtn" class="btn btn-purple">Điệu mẫu</button>
-        <button id="myPresetsBtn" class="btn btn-blue" style="display:none">Điệu của tôi</button>
-        <button id="clearBtn" class="btn btn-outline">Xoá</button>
+        <button id="rhythmBtn" class="btn btn-browse" data-i18n="rhythmPresets">Điệu mẫu</button>
+        <button id="myPresetsBtn" class="btn btn-info" style="display:none" data-i18n="myPresets">Điệu của tôi</button>
+        <button id="clearBtn" class="btn btn-danger" data-i18n="clear">Xoá</button>
       </div>
       <div class="controls-row controls-row-copy">
-        <button id="copyUrlBtn" class="btn btn-secondary btn-copy">Sao chép link share</button>
+        <button id="copyUrlBtn" class="btn btn-success btn-copy" data-i18n="copyLink">Sao chép link share</button>
+        <button id="saveRhythmBtn" class="btn btn-download" data-i18n="download">Tải xuống</button>
         <span id="copyStatus" class="copy-status"></span>
       </div>
     </div>
 
     <div class="current-preset-section">
-      <span id="currentPresetName" class="current-preset-name"></span>
+      <span id="currentPresetName" class="current-preset-name" data-i18n-empty="currentPresetEmpty" data-i18n-before="currentPresetLabel"></span>
     </div>
 
     <div class="sequencer">
@@ -69,26 +78,31 @@
   <!-- Modal Điệu của tôi -->
   <div id="myPresetsModal" class="modal">
     <div class="modal-content modal-rhythm">
-      <h2>Điệu của tôi</h2>
-      <input type="text" id="myPresetsSearch" class="rhythm-search" placeholder="Tìm điệu...">
+      <h2 data-i18n="myPresetsTitle">Điệu của tôi</h2>
+      <div class="my-presets-tabs" role="tablist">
+        <button type="button" id="tabMine" class="my-preset-tab active" role="tab" aria-selected="true">
+          <span class="tab-icon" aria-hidden="true">👤</span><span class="tab-text" data-i18n="tabMine">Của tôi</span>
+        </button>
+        <button type="button" id="tabShared" class="my-preset-tab" role="tab" aria-selected="false">
+          <span class="tab-icon" aria-hidden="true">👥</span><span class="tab-text" data-i18n="tabShared">Share</span>
+        </button>
+      </div>
+      <input type="text" id="myPresetsSearch" class="rhythm-search" data-i18n-placeholder="searchPresets" placeholder="Tìm điệu...">
       <div class="my-presets-toolbar">
-        <label class="my-presets-sort-label">Sắp xếp:</label>
-        <select id="myPresetsSort" class="my-presets-sort">
-          <option value="name-asc">Tên A-Z</option>
-          <option value="name-desc">Tên Z-A</option>
-          <option value="created-desc">Mới tạo nhất</option>
-          <option value="created-asc">Cũ nhất</option>
-          <option value="updated-desc">Cập nhật gần nhất</option>
-          <option value="updated-asc">Cập nhật cũ nhất</option>
-        </select>
+        <div class="my-presets-sort-icons" id="myPresetsSortIcons">
+          <button type="button" class="btn btn-icon sort-icon" data-order="name-asc" data-i18n-title="sortNameAsc">A↑</button>
+          <button type="button" class="btn btn-icon sort-icon" data-order="name-desc" data-i18n-title="sortNameDesc">Z↓</button>
+          <button type="button" class="btn btn-icon sort-icon" data-order="updated-desc" data-i18n-title="sortNewestTitle" data-i18n="sortNewest">Mới</button>
+          <button type="button" class="btn btn-icon sort-icon" data-order="updated-asc" data-i18n-title="sortOldestTitle" data-i18n="sortOldest">Cũ</button>
+        </div>
       </div>
       <div class="modal-actions" style="margin-bottom:1rem">
-        <button id="addMyPresetBtn" class="btn btn-save">Thêm</button>
-        <button id="sharePresetsBtn" class="btn btn-secondary" disabled title="Chọn điệu để share">Share</button>
+        <button id="addMyPresetBtn" class="btn btn-success" data-i18n="add">Thêm</button>
+        <button id="sharePresetsBtn" class="btn btn-info" disabled data-i18n-title="shareSelectPresets" data-i18n="share">Share</button>
       </div>
       <div id="myPresetsList" class="rhythm-presets"></div>
       <div class="modal-actions modal-actions-end">
-        <button id="closeMyPresets" class="btn btn-close">Đóng</button>
+        <button id="closeMyPresets" class="btn btn-close" data-i18n="close">Đóng</button>
       </div>
     </div>
   </div>
@@ -96,12 +110,24 @@
   <!-- Modal Share điệu -->
   <div id="sharePresetsModal" class="modal">
     <div class="modal-content modal-rhythm">
-      <h2>Share điệu</h2>
-      <input type="text" id="shareUserSearch" class="rhythm-search" placeholder="Tìm user theo email hoặc tên...">
-      <div id="shareUserResults" class="share-user-results"></div>
+      <h2 data-i18n="shareTitle">Share điệu</h2>
+      <div class="share-mode-options">
+        <label class="share-mode-option">
+          <input type="radio" name="shareMode" value="all" checked>
+          <span data-i18n="shareAllUsers">Tất cả user</span>
+        </label>
+        <label class="share-mode-option">
+          <input type="radio" name="shareMode" value="user">
+          <span data-i18n="shareSelectUser">Chọn user</span>
+        </label>
+      </div>
+      <div id="shareUserSection" class="share-user-section hidden">
+        <input type="text" id="shareUserSearch" class="rhythm-search" data-i18n-placeholder="searchUser" placeholder="Tìm user theo email hoặc tên...">
+        <div id="shareUserResults" class="share-user-results"></div>
+      </div>
       <div class="modal-actions">
-        <button id="shareConfirmBtn" class="btn btn-save" disabled>Share</button>
-        <button id="shareCancelBtn" class="btn">Hủy</button>
+        <button id="shareConfirmBtn" class="btn btn-success" data-i18n="share">Share</button>
+        <button id="shareCancelBtn" class="btn btn-close" data-i18n="cancel">Hủy</button>
       </div>
     </div>
   </div>
@@ -119,17 +145,17 @@
   <!-- Modal Nhịp điệu -->
   <div id="rhythmModal" class="modal">
     <div class="modal-content modal-rhythm">
-      <h2>Chọn nhịp điệu mẫu</h2>
-      <input type="text" id="rhythmSearch" class="rhythm-search" placeholder="Tìm nhịp điệu...">
+      <h2 data-i18n="rhythmTitle">Chọn nhịp điệu mẫu</h2>
+      <input type="text" id="rhythmSearch" class="rhythm-search" data-i18n-placeholder="searchRhythm" placeholder="Tìm nhịp điệu...">
       <div id="rhythmPresets" class="rhythm-presets"></div>
       <div class="modal-actions">
-        <button id="saveRhythmBtn" class="btn btn-save">Tải YAML</button>
-        <button id="closeRhythm" class="btn btn-close">Đóng</button>
+        <button id="closeRhythm" class="btn btn-close" data-i18n="close">Đóng</button>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
