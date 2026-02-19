@@ -117,9 +117,9 @@ body {
 
 .login-tooltip {
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   left: 0;
-  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
