@@ -582,6 +582,14 @@ body {
   background: var(--teal-hover);
 }
 
+.btn-upload {
+  background: var(--blue);
+  color: white;
+}
+.btn-upload:hover {
+  background: var(--blue-hover);
+}
+
 /* Legacy aliases for compatibility */
 .btn-save { background: var(--green); color: white; }
 .btn-save:hover { background: var(--green-hover); }
