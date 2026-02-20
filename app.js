@@ -1360,6 +1360,8 @@ async function openMyPresetsModal() {
         el.setAttribute('aria-selected', t === tab ? 'true' : 'false');
       }
     });
+    const addShareEl = document.getElementById('myPresetsAddShareActions');
+    if (addShareEl) addShareEl.style.display = tab === 'mine' ? 'inline-flex' : 'none';
     renderMyPresetsList(myPresetsCache, searchInput ? searchInput.value : '', myPresetsSortOrder, myPresetsTab);
   };
   if (tabMine) tabMine.onclick = () => setActiveTab('mine');
@@ -1374,6 +1376,8 @@ async function openMyPresetsModal() {
     };
     if (btn.dataset.order === myPresetsSortOrder) btn.classList.add('active');
   });
+  const addShareEl = document.getElementById('myPresetsAddShareActions');
+  if (addShareEl) addShareEl.style.display = myPresetsTab === 'mine' ? 'inline-flex' : 'none';
 }
 
 function closeMyPresetsModal() {
