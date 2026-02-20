@@ -10,7 +10,7 @@ Web app Drum Machine (step sequencer) cho phép:
 - Chọn điệu mẫu có sẵn
 - Lưu điệu cá nhân (cần đăng nhập)
 - Chia sẻ điệu với người khác
-- Xuất/nhập file YAML hoặc JSON
+- Xuất/nhập file YAML hoặc MIDI
 
 ## Kiến trúc
 
@@ -70,7 +70,7 @@ helm install drum-machine ./helm/drum-machine -f helm/drum-machine/values-k3s-el
 | **Random** | Tạo beat ngẫu nhiên theo style (rock, hiphop, latin, house) |
 | **Tuplet** | Right-click hoặc long-press step để đặt tuplet 2–6 |
 | **Share link** | Pattern encode trong URL `?data=` |
-| **Tải xuống/Tải lên** | Xuất/nhập YAML hoặc JSON |
+| **Tải xuống/Tải lên** | Xuất/nhập YAML hoặc MIDI |
 
 ## Phím tắt
 

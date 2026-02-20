@@ -1065,6 +1065,7 @@ body.app-drum select {
 
 .dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: flex-end;
   margin-top: 0;

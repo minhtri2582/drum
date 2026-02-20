@@ -132,6 +132,42 @@ function showConfirm(message, confirmText, cancelText, title, isDanger = false) 
   });
 }
 
+function showDownloadFormatChoice() {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('dialogModal');
+    const titleEl = document.getElementById('dialogTitle');
+    const messageEl = document.getElementById('dialogMessage');
+    const inputEl = document.getElementById('dialogInput');
+    const actionsEl = document.getElementById('dialogActions');
+    if (!modal || !titleEl || !messageEl || !actionsEl) return resolve(null);
+    titleEl.textContent = t('downloadTitle');
+    messageEl.textContent = t('downloadFormatChoose');
+    messageEl.style.display = '';
+    if (inputEl) inputEl.style.display = 'none';
+    actionsEl.innerHTML =
+      '<button class="btn btn-ghost dialog-cancel">' + escapeHtml(t('cancel')) + '</button>' +
+      '<button class="btn btn-download download-format-btn" data-format="yaml">' + escapeHtml(t('downloadFormatYaml')) + '</button>' +
+      '<button class="btn btn-download download-format-btn" data-format="midi">' + escapeHtml(t('downloadFormatMidi')) + '</button>';
+    const cancelBtn = actionsEl.querySelector('.dialog-cancel');
+    const yamlBtn = actionsEl.querySelector('[data-format="yaml"]');
+    const midiBtn = actionsEl.querySelector('[data-format="midi"]');
+    const close = (result) => {
+      modal.classList.remove('active');
+      cancelBtn.removeEventListener('click', onCancel);
+      yamlBtn.removeEventListener('click', onYaml);
+      midiBtn.removeEventListener('click', onMidi);
+      resolve(result);
+    };
+    const onCancel = () => close(null);
+    const onYaml = () => close('yaml');
+    const onMidi = () => close('midi');
+    cancelBtn.addEventListener('click', onCancel);
+    yamlBtn.addEventListener('click', onYaml);
+    midiBtn.addEventListener('click', onMidi);
+    modal.classList.add('active');
+  });
+}
+
 function showPrompt(message, defaultValue = '', title, placeholder = '') {
   if (title === undefined) title = t('presetName');
   return new Promise((resolve) => {
@@ -2225,7 +2261,110 @@ async function loadPresetFromFile(file) {
   }
 }
 
-async function saveCurrentRhythmAsYaml() {
+// GM Drum map: instrument id -> [note for val 1, note for val 2, note for val 3]
+const GM_DRUM_MAP = {
+  kick: [36, 36, 36],
+  snare: [38, 37, 38],      // 38 Acoustic Snare, 37 Side Stick (rimshot)
+  hihat: [42, 46, 42],      // 42 Closed, 46 Open, ghost -> closed
+  hihatPedal: [44, 44, 44],
+  tom: [47, 50, 47],        // 47 Low-Mid Tom, 50 High Tom (variant)
+  floorTom: [45, 45, 45],
+  ride: [51, 51, 51],
+  cymbal: [49, 49, 49],
+  cowbell: [56, 56, 56]
+};
+
+function velocityFromValue(val) {
+  if (val === 3) return 70;   // ghost
+  if (val === 2) return 110;  // accent/variant
+  return 100;
+}
+
+function buildMidiBlob(preset) {
+  const bpm = preset.bpm || 90;
+  const ts = preset.timeSignature || '4/4';
+  const stepsCount = getStepsCount();
+  const stepsPerBeat = getStepsPerBeat();
+  const ticksPerStep = Math.floor(480 / stepsPerBeat);
+  const playbackPattern = yamlPresetToPattern(preset);
+
+  const events = [];
+  let lastTick = 0;
+
+  function addNote(tick, note, velocity) {
+    events.push({ tick, type: 'note', note, velocity });
+  }
+
+  for (let stepIndex = 0; stepIndex < stepsCount; stepIndex++) {
+    const stepTick = stepIndex * ticksPerStep;
+    INSTRUMENTS.forEach(inst => {
+      const row = playbackPattern[inst.id];
+      const stepData = getStepData(row, stepIndex);
+      const map = GM_DRUM_MAP[inst.id];
+      if (!map) return;
+
+      if (stepData.isTuplet && stepData.hits) {
+        const stepDur = ticksPerStep;
+        stepData.hits.forEach((hitVal, i) => {
+          if (hitVal) {
+            const t = stepTick + Math.floor((i / stepData.tuplet) * stepDur);
+            addNote(t, map[Math.min(hitVal, 3) - 1] ?? map[0], velocityFromValue(hitVal));
+          }
+        });
+      } else if (stepData.value) {
+        const note = map[Math.min(stepData.value, 3) - 1] ?? map[0];
+        addNote(stepTick, note, velocityFromValue(stepData.value));
+      }
+    });
+  }
+
+  events.sort((a, b) => a.tick - b.tick);
+
+  const trackData = [];
+  function pushBytes(...arr) { arr.forEach(b => trackData.push(b & 0xff)); }
+
+  let prevTick = 0;
+  for (const ev of events) {
+    const delta = ev.tick - prevTick;
+    const vlen = [];
+    let v = delta;
+    vlen.unshift(v & 0x7f);
+    v >>>= 7;
+    while (v) { vlen.unshift((v & 0x7f) | 0x80); v >>>= 7; }
+    vlen.forEach(b => trackData.push(b));
+    pushBytes(0x99, ev.note, ev.velocity);
+    pushBytes(0x00, 0x89, ev.note, 0);
+    prevTick = ev.tick;
+  }
+
+  const header = [
+    0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
+    0x00, 0x00, 0x01, 0x00, 0x01, 0xe0
+  ];
+  const [tsNum, tsDen] = ts === '3/4' ? [3, 4] : ts === '12/8' ? [12, 8] : [4, 4];
+  const tempo = Math.floor(60000000 / bpm);
+
+  const trackChunk = [];
+  trackChunk.push(0x00, 0xff, 0x51, 0x03, (tempo >> 16) & 0xff, (tempo >> 8) & 0xff, tempo & 0xff);
+  trackChunk.push(0x00, 0xff, 0x58, 0x04, tsNum, Math.floor(Math.log2(tsDen)), 0x18, 0x08);
+  trackChunk.push(...trackData);
+  trackChunk.push(0x00, 0xff, 0x2f, 0x00);
+
+  const trackLen = trackChunk.length;
+  const out = new Uint8Array(14 + 8 + trackLen);
+  let o = 0;
+  header.forEach(b => { out[o++] = b; });
+  out[o++] = 0x4d; out[o++] = 0x54; out[o++] = 0x72; out[o++] = 0x6b;
+  out[o++] = (trackLen >> 24) & 0xff; out[o++] = (trackLen >> 16) & 0xff;
+  out[o++] = (trackLen >> 8) & 0xff; out[o++] = trackLen & 0xff;
+  trackChunk.forEach(b => { out[o++] = b; });
+
+  return new Blob([out], { type: 'audio/midi' });
+}
+
+async function downloadCurrentRhythm() {
+  const format = await showDownloadFormatChoice();
+  if (!format) return;
   const name = await showPrompt('', t('newPreset'), t('downloadTitle'));
   if (!name) return;
   const preset = {
@@ -2241,15 +2380,29 @@ async function saveCurrentRhythmAsYaml() {
     const row = pattern[inst.id] || Array(stepsCount).fill(0);
     preset.instruments[inst.id] = encodeRow(repeatPattern(row, stepsCount), stepsCount);
   });
-  const yaml = typeof jsyaml !== 'undefined'
-    ? jsyaml.dump({ presets: [preset] }, { flowLevel: 4, lineWidth: -1 })
-    : JSON.stringify(preset, null, 2);
-  const blob = new Blob([yaml], { type: 'text/yaml' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name.trim().toLowerCase().replace(/\s+/g, '-') + '.yaml';
-  a.click();
-  URL.revokeObjectURL(a.href);
+
+  const baseName = name.trim().toLowerCase().replace(/\s+/g, '-');
+
+  if (format === 'midi') {
+    const blob = buildMidiBlob(preset);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = baseName + '.mid';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } else {
+    if (typeof jsyaml === 'undefined') {
+      await showAlert(t('loadFileError') + ': js-yaml not loaded', t('error'));
+      return;
+    }
+    const yaml = jsyaml.dump({ presets: [preset] }, { flowLevel: 4, lineWidth: -1 });
+    const blob = new Blob([yaml], { type: 'text/yaml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = baseName + '.yaml';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 }
 
 // Init
@@ -2400,8 +2553,8 @@ async function init() {
       try { localStorage.setItem(SWING_STORAGE, swingEl.value); } catch (_) {}
     });
   }
-  const saveRhythmBtn = document.getElementById('saveRhythmBtn');
-  if (saveRhythmBtn) saveRhythmBtn.addEventListener('click', saveCurrentRhythmAsYaml);
+  const downloadBtn = document.getElementById('downloadBtn');
+  if (downloadBtn) downloadBtn.addEventListener('click', downloadCurrentRhythm);
   const loadFileBtn = document.getElementById('loadFileBtn');
   const loadFileInput = document.getElementById('loadFileInput');
   if (loadFileBtn && loadFileInput) {
