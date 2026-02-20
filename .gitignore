@@ -19,3 +19,4 @@ server/client_secret*.json
 server/node_modules/
 samples/
 docs/
+DRSKit2_1.zip
