@@ -949,7 +949,16 @@ function openTupletPopover(instrumentId, stepIndex, anchorEl) {
 
   const rect = anchorEl.getBoundingClientRect();
   popover.classList.add('active');
-  popover.style.left = rect.left + 'px';
+  const margin = 8;
+  const vw = window.innerWidth;
+  const pw = popover.offsetWidth;
+  if (rect.left + pw > vw - margin) {
+    popover.style.left = 'auto';
+    popover.style.right = (vw - rect.right) + 'px';
+  } else {
+    popover.style.right = 'auto';
+    popover.style.left = rect.left + 'px';
+  }
   let top = rect.top - popover.offsetHeight - 4;
   if (top < 8) top = rect.bottom + 4;
   popover.style.top = top + 'px';
