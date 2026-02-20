@@ -1290,8 +1290,12 @@ function yamlPresetToPattern(preset) {
     if (Array.isArray(raw)) {
       p[i.id] = repeatPattern(raw, stepsCount);
     } else {
-      const str = String(raw).padEnd(stepsCount, '0').slice(0, stepsCount);
-      p[i.id] = decodeRow(str, stepsCount);
+      const str = String(raw);
+      // Tuplet format uses '|' separator (e.g. "0|0|t2:10|0|...") - must not pad/slice
+      const strForDecode = (str.includes('|') || str.includes('t'))
+        ? str
+        : str.padEnd(stepsCount, '0').slice(0, stepsCount);
+      p[i.id] = decodeRow(strForDecode, stepsCount);
     }
   });
   return p;
