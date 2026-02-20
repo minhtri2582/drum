@@ -11,6 +11,7 @@
     <div class="header-row">
       <h1 class="title">Tri's Drum Player</h1>
       <div class="header-actions">
+        <a href="guide.html" class="btn btn-ghost btn-sm" title="Hướng dẫn" data-i18n="guide">Hướng dẫn</a>
         <div class="lang-switcher">
           <button type="button" class="btn btn-ghost btn-sm lang-btn" data-lang="vi" title="Tiếng Việt">VI</button>
           <button type="button" class="btn btn-ghost btn-sm lang-btn" data-lang="en" title="English">EN</button>
@@ -59,12 +60,30 @@
       </div>
       <div class="controls-row controls-row-actions">
         <button id="rhythmBtn" class="btn btn-browse" data-i18n="rhythmPresets">Điệu mẫu</button>
+        <button id="chainBtn" class="btn btn-info" data-i18n="chain">Chain</button>
         <button id="myPresetsBtn" class="btn btn-info" style="display:none" data-i18n="myPresets">Điệu của tôi</button>
+        <button id="randomBtn" class="btn btn-ghost" data-i18n="random">Random</button>
         <button id="clearBtn" class="btn btn-danger" data-i18n="clear">Xoá</button>
+      </div>
+      <div class="controls-row controls-row-volume">
+        <div class="master-volume-control">
+          <label for="masterVolume" data-i18n="masterVolume">Master Vol</label>
+          <input type="range" id="masterVolume" min="0" max="100" value="100">
+        </div>
+        <div class="dynamics-control">
+          <label for="accentLevel" data-i18n="accentLevel">Accent</label>
+          <input type="range" id="accentLevel" min="0" max="100" value="100">
+        </div>
+        <div class="swing-control">
+          <label for="swingAmount" data-i18n="swingAmount">Swing</label>
+          <input type="range" id="swingAmount" min="0" max="100" value="0">
+        </div>
       </div>
       <div class="controls-row controls-row-copy">
         <button id="copyUrlBtn" class="btn btn-success btn-copy" data-i18n="copyLink">Sao chép link share</button>
         <button id="saveRhythmBtn" class="btn btn-download" data-i18n="download">Tải xuống</button>
+        <button id="loadFileBtn" class="btn btn-ghost" data-i18n="loadFile">Tải file</button>
+        <input type="file" id="loadFileInput" accept=".yaml,.yml,.json" style="display:none">
         <span id="copyStatus" class="copy-status"></span>
       </div>
     </div>
@@ -161,6 +180,54 @@
       <div id="rhythmPresets" class="rhythm-presets"></div>
       <div class="modal-actions">
         <button id="closeRhythm" class="btn btn-close" data-i18n="close">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tuplet popover (right-click step) -->
+  <div id="tupletPopover" class="tuplet-popover" aria-hidden="true">
+    <div class="tuplet-popover-content">
+      <h3 class="tuplet-popover-title" data-i18n="tupletTitle">Tuplet cho step</h3>
+      <div class="tuplet-type-row">
+        <label><input type="radio" name="tupletType" value="0" checked> <span data-i18n="tupletNormal">Bình thường</span></label>
+        <label><input type="radio" name="tupletType" value="2"> <span data-i18n="tuplet2">Liên 2</span></label>
+        <label><input type="radio" name="tupletType" value="3"> <span data-i18n="tuplet3">Liên 3</span></label>
+        <label><input type="radio" name="tupletType" value="4"> <span data-i18n="tuplet4">Liên 4</span></label>
+        <label><input type="radio" name="tupletType" value="5"> <span data-i18n="tuplet5">Liên 5</span></label>
+        <label><input type="radio" name="tupletType" value="6"> <span data-i18n="tuplet6">Liên 6</span></label>
+      </div>
+      <div id="tupletHitsRow" class="tuplet-hits-row hidden">
+        <span data-i18n="tupletHits">Hits:</span>
+        <div id="tupletHits" class="tuplet-hits"></div>
+      </div>
+      <div class="tuplet-popover-actions">
+        <button id="tupletApply" class="btn btn-save btn-sm" data-i18n="tupletApply">Áp dụng</button>
+        <button id="tupletClear" class="btn btn-ghost btn-sm" data-i18n="tupletClear">Xoá tuplet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Chain -->
+  <div id="chainModal" class="modal">
+    <div class="modal-content modal-rhythm">
+      <h2 data-i18n="chainTitle">Chain điệu</h2>
+      <p class="chain-description" data-i18n="chainDescription">Chọn thứ tự preset để phát liên tiếp. Mỗi preset phát 4 ô nhịp.</p>
+      <div class="chain-add-row">
+        <select id="chainPresetSelect" class="rhythm-search chain-select">
+          <option value="">-- Chọn preset --</option>
+        </select>
+        <div class="chain-measures-input-wrap">
+          <label for="chainMeasuresInput" data-i18n="chainMeasures">Ô nhịp</label>
+          <input type="number" id="chainMeasuresInput" min="1" max="64" value="4" title="Số ô nhịp phát">
+        </div>
+        <button id="chainAddPreset" class="btn btn-success btn-sm" data-i18n="chainAdd">Thêm preset</button>
+      </div>
+      <div id="chainList" class="chain-list"></div>
+      <div class="chain-toolbar">
+        <button id="chainClear" class="btn btn-ghost btn-sm" data-i18n="chainClear">Xoá chain</button>
+      </div>
+      <div class="modal-actions">
+        <button id="closeChain" class="btn btn-close" data-i18n="close">Đóng</button>
       </div>
     </div>
   </div>

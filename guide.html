@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Hướng dẫn - Tri's Drum Player</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .guide-container { max-width: 720px; margin: 0 auto; padding: 2rem; }
+    .guide-container h1 { font-size: 1.75rem; margin-bottom: 1rem; }
+    .guide-container h2 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; color: var(--accent); }
+    .guide-container h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+    .guide-container p { margin-bottom: 0.75rem; line-height: 1.6; color: var(--text-secondary); }
+    .guide-container ul, .guide-container ol { margin: 0.5rem 0 1rem 1.5rem; color: var(--text-secondary); }
+    .guide-container li { margin-bottom: 0.35rem; }
+    .guide-container .back-link { display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; color: var(--accent); text-decoration: none; }
+    .guide-container .back-link:hover { text-decoration: underline; }
+    .guide-container .kbd { display: inline-block; padding: 0.15rem 0.5rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 0.85em; }
+    .guide-container table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .guide-container th, .guide-container td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .guide-container th { color: var(--accent); font-weight: 500; }
+    .guide-container .note { background: var(--accent-muted); padding: 0.75rem 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="guide-container">
+    <a href="index.html" class="back-link">← Quay lại Drum Machine</a>
+
+    <h1>Hướng dẫn sử dụng Tri's Drum Player</h1>
+    <p>Công cụ trống điện tử trực tuyến để tạo, lưu và chỉnh sửa điệu trống dễ dàng.</p>
+
+    <h2>1. Cơ bản</h2>
+    <h3>Tạo điệu trống</h3>
+    <ul>
+      <li>Nhấp vào các ô vuông trên lưới sequencer để bật/tắt beat cho từng nhạc cụ.</li>
+      <li>Mỗi hàng là một nhạc cụ: Bàn đạp hi-hat, Tom-tom, Chân tom sàn, Cymbal, Ride, Cowbell, Hi-hat, Trống Snare, Trống bass.</li>
+      <li>Mỗi cột là một bước (step) trong chuỗi nhịp.</li>
+    </ul>
+
+    <h3>Phát nhạc</h3>
+    <ul>
+      <li>Nhấn nút <strong>Play</strong> (▶) hoặc phím <span class="kbd">Space</span> / <span class="kbd">Enter</span> để phát/dừng.</li>
+      <li>Điều chỉnh <strong>BPM</strong> (40–240) để thay đổi tốc độ.</li>
+      <li>Chọn <strong>Nhịp</strong> (4/4, 3/4, 12/8) phù hợp với bài hát.</li>
+    </ul>
+
+    <h2>2. Biến thể nhạc cụ (nhấp nhiều lần)</h2>
+    <p>Một số nhạc cụ có nhiều biến thể âm thanh. Nhấp liên tiếp để chuyển đổi:</p>
+    <table>
+      <thead>
+        <tr><th>Nhạc cụ</th><th>Biến thể</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Hi-hat</td><td>Đóng → Mở → Tiếng nhẹ</td></tr>
+        <tr><td>Snare</td><td>Thường → Rimshot → Tiếng nhẹ</td></tr>
+        <tr><td>Tom-tom</td><td>Tom cao → Tom thấp</td></tr>
+      </tbody>
+    </table>
+
+    <h2>3. Tuplet per step (Liên 2, 3, 4, 5, 6)</h2>
+    <p>Mỗi ô step có thể có tuplet riêng để tạo nhịp phức tạp hơn (ví dụ: liên 3 trên 1 đen, liên 6 trên 1 đen).</p>
+    <ul>
+      <li><strong>Nhấp chuột phải</strong> (hoặc nhấp trái vào ô đã có tuplet) để mở popover tuplet.</li>
+      <li>Chọn <strong>Liên 2</strong>, <strong>Liên 3</strong>, <strong>Liên 4</strong>, <strong>Liên 5</strong> hoặc <strong>Liên 6</strong> để chia step thành 2–6 nốt đều trong cùng thời gian.</li>
+      <li>Bật/tắt từng hit trong tuplet bằng cách nhấp vào các ô số (1, 2, 3, …).</li>
+      <li>Nhấn <strong>Áp dụng</strong> để lưu, hoặc <strong>Xoá tuplet</strong> để trở về step bình thường.</li>
+      <li>Ô có tuplet hiển thị badge số (2, 3, 4, 5, 6) để dễ nhận biết.</li>
+    </ul>
+
+    <h2>4. Điều khiển âm lượng</h2>
+    <ul>
+      <li><strong>Âm lượng tổng</strong>: Âm lượng chung (0–100%).</li>
+      <li><strong>Vol</strong> (mỗi hàng): Âm lượng từng nhạc cụ.</li>
+      <li><strong>Nhấn mạnh</strong>: Độ nhấn mạnh beat 1 (phách mạnh).</li>
+      <li>Nhấp vào tên nhạc cụ để <strong>tắt âm</strong> (mute) kênh đó.</li>
+    </ul>
+
+    <h2>5. Độ lệch nhịp (Swing)</h2>
+    <p>Slider <strong>Độ lệch nhịp</strong> (0–100%) tạo cảm giác groove tự nhiên bằng cách lệch nhẹ các bước phụ.</p>
+
+    <h2>6. Điệu mẫu & Ngẫu nhiên</h2>
+    <ul>
+      <li><strong>Điệu mẫu</strong>: Chọn preset có sẵn (Rock, Cha cha, Bossa Nova, …).</li>
+      <li><strong>Ngẫu nhiên</strong>: Tạo beat ngẫu nhiên theo style Rock, Hip Hop, Latin, House.</li>
+    </ul>
+
+    <h2>7. Chuỗi điệu (phát nhiều preset liên tiếp)</h2>
+    <ul>
+      <li>Nhấn <strong>Chuỗi điệu</strong> để mở hộp thoại.</li>
+      <li>Chọn preset từ dropdown (gồm: <strong>Điệu mặc định</strong>, <strong>Điệu của tôi</strong>, <strong>Điệu share</strong>), nhập <strong>số ô nhịp</strong> (1–64), rồi nhấn <strong>Thêm preset</strong>.</li>
+      <li>Mỗi preset phát theo số ô nhịp đã nhập. Có thể chỉnh sửa số ô nhịp từng preset trong danh sách chuỗi.</li>
+      <li>Chuỗi được lưu tự động trong trình duyệt.</li>
+    </ul>
+
+    <h2>8. Lưu & chia sẻ</h2>
+    <ul>
+      <li><strong>Sao chép link share</strong>: Pattern được mã hóa trong URL. Dán link để chia sẻ hoặc bookmark.</li>
+      <li><strong>Tải xuống</strong>: Lưu pattern hiện tại dưới dạng file YAML.</li>
+      <li><strong>Tải file</strong>: Load preset từ file YAML đã tải xuống trước đó.</li>
+      <li><strong>Đăng nhập Google</strong>: Lưu preset riêng trên server, chia sẻ với user khác.</li>
+    </ul>
+
+    <h2>9. Phím tắt</h2>
+    <table>
+      <thead>
+        <tr><th>Phím</th><th>Chức năng</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="kbd">Space</span> / <span class="kbd">Enter</span></td><td>Phát / Dừng</td></tr>
+        <tr><td><span class="kbd">R</span></td><td>Tạo beat ngẫu nhiên</td></tr>
+        <tr><td><span class="kbd">M</span></td><td>Bật/tắt Metronome</td></tr>
+        <tr><td><span class="kbd">+</span> / <span class="kbd">Numpad +</span></td><td>Tăng BPM 5</td></tr>
+        <tr><td><span class="kbd">-</span> / <span class="kbd">Numpad -</span></td><td>Giảm BPM 5</td></tr>
+      </tbody>
+    </table>
+
+    <h2>10. Bộ tiếng (Sound sets)</h2>
+    <p>Chọn bộ tiếng khác nhau từ dropdown <strong>Bộ tiếng</strong>: standard, pearl-master, 808, 909, jazz, electronic, latin, vintage. Một số bộ dùng synthesis nếu chưa có samples.</p>
+
+    <div class="note">
+      <strong>Lưu ý:</strong> Metronome (Click) phát tiếng gõ nhịp khi bật. Hữu ích khi tập luyện hoặc đồng bộ với nhạc cụ khác.
+    </div>
+  </div>
+</body>
+</html>

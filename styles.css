@@ -372,6 +372,131 @@ body {
   accent-color: var(--accent);
 }
 
+.controls-row-volume {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.master-volume-control,
+.dynamics-control,
+.swing-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.master-volume-control label,
+.dynamics-control label,
+.swing-control label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  min-width: 4rem;
+}
+
+.master-volume-control input[type="range"],
+.dynamics-control input[type="range"],
+.swing-control input[type="range"] {
+  width: 80px;
+  accent-color: var(--accent);
+}
+
+.chain-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.chain-add-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.chain-measures-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.chain-measures-input-wrap label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.chain-measures-input-wrap input {
+  width: 48px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.chain-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.chain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.chain-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.chain-item .chain-order {
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 1.5rem;
+}
+
+.chain-item .chain-name {
+  flex: 1;
+}
+
+.chain-item .chain-measures-edit {
+  width: 44px;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.chain-item .chain-remove {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.chain-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
 /* === Semantic button colors by function ===
    btn-primary: Accent - main action (Play)
    btn-success: Green - save, add, confirm, export (Sao chép link, Thêm)
@@ -665,9 +790,100 @@ body {
   background: #5ac8fa;
 }
 
+.step.active.ghost {
+  background: rgba(255, 159, 10, 0.5);
+}
+
+.step.active.ghost:hover {
+  background: rgba(255, 159, 10, 0.65);
+}
+
 .step.current {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+.step.step-tuplet {
+  position: relative;
+}
+.step-tuplet-badge {
+  font-size: 0.6em;
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+/* Tuplet popover */
+.tuplet-popover {
+  display: none;
+  position: fixed;
+  z-index: 1100;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  box-shadow: var(--shadow);
+  min-width: 180px;
+}
+.tuplet-popover.active {
+  display: block;
+}
+.tuplet-popover-title {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+.tuplet-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.tuplet-type-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.tuplet-hits-row {
+  margin-bottom: 0.5rem;
+}
+.tuplet-hits-row.hidden {
+  display: none;
+}
+.tuplet-hits {
+  display: flex;
+  gap: 4px;
+  margin-top: 0.25rem;
+}
+.tuplet-hit {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: var(--cell-inactive);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background 0.15s;
+}
+.tuplet-hit:hover {
+  background: var(--bg-tertiary);
+}
+.tuplet-hit.active {
+  background: var(--cell-active);
+  color: var(--text-primary);
+}
+.tuplet-hit.active.variant {
+  background: var(--cell-variant);
+}
+.tuplet-hit.active.ghost {
+  background: rgba(255, 159, 10, 0.5);
+}
+.tuplet-popover-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 /* Modal */

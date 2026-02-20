@@ -26,8 +26,15 @@ let intervalId = null;
 let mutedInstruments = new Set();
 let instrumentVolumes = {}; // instrumentId -> 0..1, default 1
 let audioContext = null;
+let masterGainNode = null;
+let chainPresets = []; // [{ preset, measures }] for pattern chaining
+let chainMeasuresPerPreset = 4;
 
 const VOLUME_STORAGE = 'drum-instrument-volumes';
+const MASTER_VOLUME_STORAGE = 'drum-master-volume';
+const ACCENT_STORAGE = 'drum-accent-level';
+const SWING_STORAGE = 'drum-swing';
+const CHAIN_STORAGE = 'drum-chain';
 
 function getInstrumentVolume(instrumentId) {
   if (instrumentVolumes[instrumentId] !== undefined) return instrumentVolumes[instrumentId];
@@ -168,8 +175,9 @@ function showPrompt(message, defaultValue = '', title, placeholder = '') {
 
 function getEmptyPattern() {
   const p = {};
+  const stepsCount = getStepsCount();
   INSTRUMENTS.forEach(inst => {
-    p[inst.id] = Array(STEPS).fill(0);
+    p[inst.id] = Array(stepsCount).fill(0);
   });
   return p;
 }
@@ -269,11 +277,47 @@ function getStepsCount() {
   return cfg.measures * cfg.subdivisions;
 }
 
+// Per-step tuplet: step can be number (0,1,2,3) or { tuplet: 2|3|4|5|6, hits: number[] }
+const TUPLET_OPTIONS = [2, 3, 4, 5, 6];
+
+function getStepData(row, stepIndex) {
+  if (!row || stepIndex >= (row.length || 0)) return { value: 0, isTuplet: false };
+  const v = row[stepIndex];
+  if (typeof v === 'object' && v !== null && 'tuplet' in v && Array.isArray(v.hits)) {
+    const n = TUPLET_OPTIONS.includes(v.tuplet) ? v.tuplet : 2;
+    return { value: 0, isTuplet: true, tuplet: n, hits: v.hits.slice(0, n) };
+  }
+  const n = typeof v === 'number' ? v : 0;
+  return { value: n, isTuplet: false };
+}
+
+function setStepTuplet(instrumentId, stepIndex, tuplet, hits) {
+  if (!pattern[instrumentId]) pattern[instrumentId] = Array(getStepsCount()).fill(0);
+  if (stepIndex >= getStepsCount()) return;
+  const n = Math.min(Math.max(2, tuplet || 2), 6);
+  pattern[instrumentId][stepIndex] = { tuplet: n, hits: Array.isArray(hits) ? hits.slice(0, n) : Array(n).fill(0) };
+}
+
+function clearStepTuplet(instrumentId, stepIndex) {
+  if (!pattern[instrumentId]) return;
+  const v = pattern[instrumentId][stepIndex];
+  if (typeof v === 'object' && v !== null && 'tuplet' in v) {
+    const firstHit = (v.hits && v.hits[0]) || 0;
+    pattern[instrumentId][stepIndex] = firstHit;
+  }
+}
+
 // Initialize pattern from empty or URL
 function initPattern() {
+  const stepsCount = getStepsCount();
   INSTRUMENTS.forEach(inst => {
     if (!pattern[inst.id]) {
-      pattern[inst.id] = Array(STEPS).fill(0);
+      pattern[inst.id] = Array(stepsCount).fill(0);
+    } else if (pattern[inst.id].length !== stepsCount) {
+      const row = pattern[inst.id];
+      const newRow = Array(stepsCount).fill(0);
+      for (let i = 0; i < Math.min(row.length, stepsCount); i++) newRow[i] = row[i];
+      pattern[inst.id] = newRow;
     }
   });
 }
@@ -348,6 +392,7 @@ function playSampleBuffer(key, gain = 1) {
   const buf = sampleBuffers[key];
   if (!buf) return false;
   const ctx = getAudioContext();
+  const dest = masterGainNode || ctx.destination;
   const src = ctx.createBufferSource();
   src.buffer = buf;
   let g = gain;
@@ -357,9 +402,9 @@ function playSampleBuffer(key, gain = 1) {
     const gainNode = ctx.createGain();
     gainNode.gain.value = g;
     src.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(dest);
   } else {
-    src.connect(ctx.destination);
+    src.connect(dest);
   }
   src.start(0);
   return true;
@@ -369,8 +414,36 @@ function playSampleBuffer(key, gain = 1) {
 function getAudioContext() {
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    masterGainNode = audioContext.createGain();
+    masterGainNode.connect(audioContext.destination);
+    const stored = localStorage.getItem(MASTER_VOLUME_STORAGE);
+    masterGainNode.gain.value = stored !== null ? parseInt(stored, 10) / 100 : 1;
   }
   return audioContext;
+}
+
+function getMasterVolume() {
+  const el = document.getElementById('masterVolume');
+  return el ? parseInt(el.value, 10) / 100 : 1;
+}
+
+function setMasterVolume(val) {
+  if (masterGainNode) masterGainNode.gain.value = Math.max(0, Math.min(1, val));
+}
+
+function getAccentLevel() {
+  const el = document.getElementById('accentLevel');
+  return el ? parseInt(el.value, 10) / 100 : 1;
+}
+
+function getSwingAmount() {
+  const el = document.getElementById('swingAmount');
+  return el ? parseInt(el.value, 10) / 100 : 0;
+}
+
+function getAudioDestination() {
+  getAudioContext();
+  return masterGainNode || audioContext.destination;
 }
 
 function playKick(vol = 1) {
@@ -379,7 +452,7 @@ function playKick(vol = 1) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   osc.type = 'sine';
   osc.frequency.setValueAtTime(180, t);
   osc.frequency.exponentialRampToValueAtTime(52, t + 0.012);
@@ -399,7 +472,7 @@ function playSnare(vol = 1) {
   const osc = ctx.createOscillator();
   const oscGain = ctx.createGain();
   osc.connect(oscGain);
-  oscGain.connect(ctx.destination);
+  oscGain.connect(getAudioDestination());
   osc.type = 'triangle';
   osc.frequency.setValueAtTime(220, t);
   osc.frequency.exponentialRampToValueAtTime(95, t + 0.025);
@@ -425,7 +498,7 @@ function playSnare(vol = 1) {
   noiseFilter.Q.value = 1.2;
   noise.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
-  noiseGain.connect(ctx.destination);
+  noiseGain.connect(getAudioDestination());
   noiseGain.gain.setValueAtTime(0.5 * vol, t);
   noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.06);
   noise.start(t);
@@ -438,7 +511,7 @@ function playSnareRimshot(vol = 1) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   osc.frequency.setValueAtTime(600, t);
   osc.frequency.exponentialRampToValueAtTime(200, t + 0.02);
   osc.type = 'sine';
@@ -461,7 +534,7 @@ function playSnareRimshot(vol = 1) {
   noiseFilter.Q.value = 2;
   noise.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
-  noiseGain.connect(ctx.destination);
+  noiseGain.connect(getAudioDestination());
   noiseGain.gain.setValueAtTime(0.35 * vol, t);
   noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.02);
   noise.start(t);
@@ -488,7 +561,7 @@ function playHiHat(closed = true, vol = 1) {
   filter.Q.value = closed ? 1.2 : 0.6;
   noise.connect(filter);
   filter.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   gain.gain.setValueAtTime((closed ? 0.14 : 0.12) * vol, t);  // Nhẹ hơn
   gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
   noise.start(t);
@@ -501,7 +574,7 @@ function playTom(freq, vol = 1) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   osc.type = 'sine';
   osc.frequency.setValueAtTime(freq * 1.15, t);
   osc.frequency.exponentialRampToValueAtTime(freq, t + 0.015);
@@ -519,7 +592,7 @@ function playMetronomeClick(accent = false) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   osc.frequency.setValueAtTime(accent ? 1000 : 800, t);
   osc.type = 'sine';
   gain.gain.setValueAtTime(accent ? 0.15 : 0.08, t);
@@ -534,7 +607,7 @@ function playCowbell(vol = 1) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   osc.type = 'triangle';
   osc.frequency.setValueAtTime(1050, t);
   osc.frequency.exponentialRampToValueAtTime(650, t + 0.025);
@@ -562,7 +635,7 @@ function playCymbal(vol = 1) {
   filter.Q.value = 0.6;
   noise.connect(filter);
   filter.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   gain.gain.setValueAtTime(0.14 * vol, t);  // Nhẹ hơn
   gain.gain.exponentialRampToValueAtTime(0.04 * vol, t + 0.08);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
@@ -588,7 +661,7 @@ function playRide(vol = 1) {
   filter.Q.value = 0.6;
   noise.connect(filter);
   filter.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(getAudioDestination());
   gain.gain.setValueAtTime(0.22 * vol, t);
   gain.gain.exponentialRampToValueAtTime(0.06 * vol, t + 0.04);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
@@ -596,10 +669,12 @@ function playRide(vol = 1) {
   noise.stop(t + 0.25);
 }
 
-function playDrum(instrumentId, value = 1) {
+function playDrum(instrumentId, value = 1, velocityMultiplier = 1) {
   if (mutedInstruments.has(instrumentId)) return;
-  const vol = getInstrumentVolume(instrumentId);
+  let vol = getInstrumentVolume(instrumentId) * velocityMultiplier;
   if (vol <= 0) return;
+  // Ghost note: value 3 = soft hit (velocity 0.4)
+  if (value === 3) vol *= 0.4;
   // Ưu tiên sample WAV nếu đã load
   const useSample = (key) => playSampleBuffer(key, vol);
   switch (instrumentId) {
@@ -667,16 +742,30 @@ function renderSequencer() {
     stepsEl.className = 'steps steps-' + stepsCount;
     for (let i = 0; i < stepsCount; i++) {
       const step = document.createElement('button');
-      const val = pattern[inst.id] && pattern[inst.id][i];
+      const stepData = getStepData(pattern[inst.id], i);
+      const val = stepData.isTuplet ? (stepData.hits && stepData.hits.some(h => h)) : stepData.value;
       const isDownbeat = i % subdivisions === 0;
-      step.className = 'step' + (isDownbeat ? ' downbeat' : '') + (val ? ' active' : '') + (val === 2 ? ' variant' : '');
+      const isTuplet = stepData.isTuplet;
+      step.className = 'step' + (isDownbeat ? ' downbeat' : '') + (val ? ' active' : '') +
+        (!isTuplet && stepData.value === 2 ? ' variant' : '') + (!isTuplet && stepData.value === 3 ? ' ghost' : '') +
+        (isTuplet ? ' step-tuplet' : '');
       step.dataset.instrument = inst.id;
       step.dataset.step = i;
       step.setAttribute('type', 'button');
-      step.title = (inst.id === 'hihat' || inst.id === 'hihatPedal') && val === 2 ? t('hihatOpen') :
-        inst.id === 'snare' && val === 2 ? t('snareRimshot') :
-        inst.id === 'tom' && val === 2 ? t('tomLow') : '';
-      step.addEventListener('click', () => toggleStep(inst.id, i));
+      step.title = isTuplet ? t('tupletStep', { n: stepData.tuplet }) :
+        (inst.id === 'hihat' || inst.id === 'hihatPedal') && stepData.value === 2 ? t('hihatOpen') :
+        (inst.id === 'hihat' || inst.id === 'hihatPedal') && stepData.value === 3 ? t('ghostNote') :
+        inst.id === 'snare' && stepData.value === 2 ? t('snareRimshot') :
+        inst.id === 'snare' && stepData.value === 3 ? t('ghostNote') :
+        inst.id === 'tom' && stepData.value === 2 ? t('tomLow') : '';
+      if (isTuplet) {
+        const badge = document.createElement('span');
+        badge.className = 'step-tuplet-badge';
+        badge.textContent = String(stepData.tuplet);
+        step.appendChild(badge);
+      }
+      step.addEventListener('click', (e) => { e.preventDefault(); if (isTuplet) openTupletPopover(inst.id, i, step); else toggleStep(inst.id, i); });
+      step.addEventListener('contextmenu', (e) => { e.preventDefault(); openTupletPopover(inst.id, i, step); });
       stepsEl.appendChild(step);
     }
     row.appendChild(nameEl);
@@ -706,12 +795,20 @@ function updateGridHeader() {
 }
 
 function toggleStep(instrumentId, stepIndex) {
-  if (!pattern[instrumentId]) pattern[instrumentId] = Array(STEPS).fill(0);
-  if (stepIndex >= getStepsCount()) return;
+  const stepsCount = getStepsCount();
+  if (!pattern[instrumentId]) pattern[instrumentId] = Array(stepsCount).fill(0);
+  if (stepIndex >= stepsCount) return;
+  const v = pattern[instrumentId][stepIndex];
+  if (typeof v === 'object' && v !== null && 'tuplet' in v) return;
   const hasVariant = instrumentId === 'hihat' || instrumentId === 'hihatPedal' || instrumentId === 'snare' || instrumentId === 'tom';
-  const current = pattern[instrumentId][stepIndex] || 0;
+  const hasGhost = instrumentId === 'hihat' || instrumentId === 'hihatPedal' || instrumentId === 'snare';
+  const current = typeof v === 'number' ? v : 0;
   if (hasVariant) {
-    pattern[instrumentId][stepIndex] = current === 0 ? 1 : current === 1 ? 2 : 0;
+    if (hasGhost) {
+      pattern[instrumentId][stepIndex] = current === 0 ? 1 : current === 1 ? 2 : current === 2 ? 3 : 0;
+    } else {
+      pattern[instrumentId][stepIndex] = current === 0 ? 1 : current === 1 ? 2 : 0;
+    }
   } else {
     pattern[instrumentId][stepIndex] = current ? 0 : 1;
   }
@@ -728,15 +825,139 @@ function toggleMute(instrumentId) {
   renderSequencer();
 }
 
+function openTupletPopover(instrumentId, stepIndex, anchorEl) {
+  const popover = document.getElementById('tupletPopover');
+  const hitsRow = document.getElementById('tupletHitsRow');
+  const hitsContainer = document.getElementById('tupletHits');
+  const applyBtn = document.getElementById('tupletApply');
+  const clearBtn = document.getElementById('tupletClear');
+  if (!popover || !hitsRow || !hitsContainer) return;
+
+  const stepData = getStepData(pattern[instrumentId], stepIndex);
+  const stepsCount = getStepsCount();
+  if (!pattern[instrumentId]) pattern[instrumentId] = Array(stepsCount).fill(0);
+
+  popover.dataset.instrument = instrumentId;
+  popover.dataset.step = String(stepIndex);
+
+  const typeRadios = popover.querySelectorAll('input[name="tupletType"]');
+  if (stepData.isTuplet) {
+    typeRadios.forEach(r => { r.checked = (r.value === String(stepData.tuplet)); });
+    hitsRow.classList.remove('hidden');
+    renderTupletHits(stepData.tuplet, stepData.hits || [], hitsContainer, instrumentId);
+  } else {
+    typeRadios.forEach(r => { r.checked = (r.value === '0'); });
+    hitsRow.classList.add('hidden');
+  }
+
+  typeRadios.forEach(r => {
+    r.onchange = () => {
+      const n = parseInt(r.value, 10);
+      if (n > 0) {
+        hitsRow.classList.remove('hidden');
+        renderTupletHits(n, Array(n).fill(0), hitsContainer, instrumentId);
+      } else {
+        hitsRow.classList.add('hidden');
+      }
+    };
+  });
+
+  const rect = anchorEl.getBoundingClientRect();
+  popover.classList.add('active');
+  popover.style.left = rect.left + 'px';
+  let top = rect.top - popover.offsetHeight - 4;
+  if (top < 8) top = rect.bottom + 4;
+  popover.style.top = top + 'px';
+  popover.setAttribute('aria-hidden', 'false');
+
+  const closePopover = () => {
+    popover.classList.remove('active');
+    popover.setAttribute('aria-hidden', 'true');
+  };
+
+  const onApply = () => {
+    const checked = popover.querySelector('input[name="tupletType"]:checked');
+    const n = parseInt(checked ? checked.value : '0', 10);
+    if (n > 0) {
+      const hits = hitsContainer._tupletState || Array.from(hitsContainer.querySelectorAll('.tuplet-hit')).map(el => el.classList.contains('active') ? 1 : 0);
+      setStepTuplet(instrumentId, stepIndex, n, hits);
+    } else {
+      clearStepTuplet(instrumentId, stepIndex);
+    }
+    updateStepUI(instrumentId, stepIndex);
+    updateUrl();
+    renderSequencer();
+    closePopover();
+  };
+
+  const onClear = () => {
+    clearStepTuplet(instrumentId, stepIndex);
+    updateStepUI(instrumentId, stepIndex);
+    updateUrl();
+    renderSequencer();
+    closePopover();
+  };
+
+  applyBtn.onclick = onApply;
+  clearBtn.onclick = onClear;
+
+  const clickOutside = (e) => {
+    if (!popover.contains(e.target) && !anchorEl.contains(e.target)) {
+      closePopover();
+      document.removeEventListener('click', clickOutside);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', clickOutside), 0);
+}
+
+function renderTupletHits(n, hits, container, instrumentId) {
+  container.innerHTML = '';
+  const hasVariant = instrumentId === 'hihat' || instrumentId === 'hihatPedal' || instrumentId === 'snare' || instrumentId === 'tom';
+  const state = (hits || []).slice(0, n);
+  while (state.length < n) state.push(0);
+  for (let i = 0; i < n; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tuplet-hit' + (state[i] ? ' active' : '') + (state[i] === 2 ? ' variant' : '') + (state[i] === 3 ? ' ghost' : '');
+    btn.textContent = i + 1;
+    btn.dataset.index = i;
+    btn.addEventListener('click', () => {
+      const val = state[i] || 0;
+      if (hasVariant) {
+        state[i] = val === 0 ? 1 : val === 1 ? 2 : val === 2 ? 3 : 0;
+      } else {
+        state[i] = val ? 0 : 1;
+      }
+      btn.classList.toggle('active', !!state[i]);
+      btn.classList.toggle('variant', state[i] === 2);
+      btn.classList.toggle('ghost', state[i] === 3);
+    });
+    container.appendChild(btn);
+  }
+  container._tupletState = state;
+}
+
 function updateStepUI(instrumentId, stepIndex) {
   const step = document.querySelector(`.step[data-instrument="${instrumentId}"][data-step="${stepIndex}"]`);
-  if (step) {
-    const val = pattern[instrumentId][stepIndex];
-    step.classList.toggle('active', !!val);
-    step.classList.toggle('variant', val === 2);
-    step.title = (instrumentId === 'hihat' || instrumentId === 'hihatPedal') && val === 2 ? t('hihatOpen') :
-      instrumentId === 'snare' && val === 2 ? t('snareRimshot') :
-      instrumentId === 'tom' && val === 2 ? t('tomLow') : '';
+  if (!step) return;
+  const stepData = getStepData(pattern[instrumentId], stepIndex);
+  const val = stepData.isTuplet ? (stepData.hits && stepData.hits.some(h => h)) : stepData.value;
+  step.classList.toggle('active', !!val);
+  step.classList.toggle('variant', !stepData.isTuplet && stepData.value === 2);
+  step.classList.toggle('ghost', !stepData.isTuplet && stepData.value === 3);
+  step.classList.toggle('step-tuplet', stepData.isTuplet);
+  step.title = stepData.isTuplet ? t('tupletStep', { n: stepData.tuplet }) :
+    (instrumentId === 'hihat' || instrumentId === 'hihatPedal') && stepData.value === 2 ? t('hihatOpen') :
+    (instrumentId === 'hihat' || instrumentId === 'hihatPedal' || instrumentId === 'snare') && stepData.value === 3 ? t('ghostNote') :
+    instrumentId === 'snare' && stepData.value === 2 ? t('snareRimshot') :
+    instrumentId === 'tom' && stepData.value === 2 ? t('tomLow') : '';
+  if (stepData.isTuplet) {
+    let badge = step.querySelector('.step-tuplet-badge');
+    if (!badge) { badge = document.createElement('span'); badge.className = 'step-tuplet-badge'; step.insertBefore(badge, step.firstChild); }
+    badge.textContent = stepData.tuplet;
+  } else {
+    const badge = step.querySelector('.step-tuplet-badge');
+    if (badge) badge.remove();
   }
 }
 
@@ -757,8 +978,27 @@ function updateCurrentStepUI() {
 }
 
 // Playback
+let chainPlaybackIndex = 0;
+let chainPlaybackMeasureCount = 0;
+
 function getBpm() {
   return Math.max(40, Math.min(240, parseInt(bpmInput.value) || DEFAULT_BPM));
+}
+
+function getPlaybackPattern() {
+  if (chainPresets.length > 0 && isPlaying) {
+    const p = chainPresets[chainPlaybackIndex];
+    return p ? yamlPresetToPattern(p.preset) : pattern;
+  }
+  return pattern;
+}
+
+function getSwingDeltaForNextStep(nextStep) {
+  const swing = getSwingAmount();
+  if (swing <= 0) return 0;
+  const baseInterval = 60000 / getBpm() / 4;
+  const swingAmount = baseInterval * swing * 0.25;
+  return (nextStep % 2 === 1) ? swingAmount : -swingAmount;
 }
 
 function startPlayback() {
@@ -767,27 +1007,74 @@ function startPlayback() {
   isPlaying = true;
   playBtn.classList.add('playing');
   playBtn.querySelector('.play-icon').textContent = '■';
-  const interval = 60000 / getBpm() / 4;
+  chainPlaybackIndex = 0;
+  chainPlaybackMeasureCount = 0;
+  if (chainPresets.length > 0) {
+    const p = chainPresets[0].preset;
+    pattern = yamlPresetToPattern(p);
+    if (p.bpm) bpmInput.value = p.bpm;
+    if (p.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(p.timeSignature)) {
+      timeSignatureSelect.value = p.timeSignature;
+    }
+    renderSequencer();
+    updatePresetNameDisplay(p.name + ' (1/' + chainPresets.length + ')');
+  }
+  const baseInterval = 60000 / getBpm() / 4;
   currentStep = 0;
   updateCurrentStepUI();
   const stepsCount = getStepsCount();
   const subdivisions = getSubdivisionsPerMeasure();
-  intervalId = setInterval(() => {
+
+  function tick() {
+    const playbackPattern = getPlaybackPattern();
     if (metronomeCheck && metronomeCheck.checked) {
       const isQuarterBeat = currentStep % subdivisions === 0;
       if (isQuarterBeat) {
         playMetronomeClick(currentStep === 0);
       }
     }
+    const accent = getAccentLevel();
+    const velocityMult = (currentStep % subdivisions === 0 && currentStep < subdivisions) ? (0.5 + 0.5 * accent) : 1;
     INSTRUMENTS.forEach(inst => {
-      const val = pattern[inst.id] && pattern[inst.id][currentStep];
-      if (val) {
-        playDrum(inst.id, val);
+      const row = playbackPattern[inst.id];
+      const stepData = getStepData(row, currentStep);
+      if (stepData.isTuplet) {
+        const stepDuration = baseInterval;
+        stepData.hits.forEach((hitVal, i) => {
+          if (hitVal) {
+            const delay = (i / stepData.tuplet) * stepDuration;
+            setTimeout(() => playDrum(inst.id, hitVal, velocityMult), delay);
+          }
+        });
+      } else if (stepData.value) {
+        playDrum(inst.id, stepData.value, velocityMult);
       }
     });
-    currentStep = (currentStep + 1) % stepsCount;
+    currentStep++;
+    if (currentStep >= stepsCount) {
+      currentStep = 0;
+      chainPlaybackMeasureCount++;
+      const measuresForCurrent = chainPresets[chainPlaybackIndex].measures || chainMeasuresPerPreset;
+      if (chainPresets.length > 0 && chainPlaybackMeasureCount >= measuresForCurrent) {
+        chainPlaybackMeasureCount = 0;
+        chainPlaybackIndex = (chainPlaybackIndex + 1) % chainPresets.length;
+        const p = chainPresets[chainPlaybackIndex].preset;
+        pattern = yamlPresetToPattern(p);
+        if (p.bpm) bpmInput.value = p.bpm;
+        if (p.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(p.timeSignature)) {
+          timeSignatureSelect.value = p.timeSignature;
+        }
+        renderSequencer();
+        updatePresetNameDisplay(p.name + ' (' + (chainPlaybackIndex + 1) + '/' + chainPresets.length + ')');
+      }
+    }
     updateCurrentStepUI();
-  }, interval);
+    const nextStep = currentStep >= stepsCount ? 0 : currentStep;
+    const swingDelta = getSwingDeltaForNextStep(nextStep);
+    intervalId = setTimeout(tick, Math.max(10, baseInterval + swingDelta));
+  }
+
+  intervalId = setTimeout(tick, baseInterval);
 }
 
 function stopPlayback() {
@@ -796,7 +1083,7 @@ function stopPlayback() {
   playBtn.classList.remove('playing');
   playBtn.querySelector('.play-icon').textContent = '▶';
   if (intervalId) {
-    clearInterval(intervalId);
+    clearTimeout(intervalId);
     intervalId = null;
   }
   document.querySelectorAll('.step').forEach(el => el.classList.remove('current'));
@@ -812,23 +1099,75 @@ function togglePlayback() {
 
 // Clear
 function clearPattern() {
+  const stepsCount = getStepsCount();
   INSTRUMENTS.forEach(inst => {
-    pattern[inst.id] = Array(STEPS).fill(0);
+    pattern[inst.id] = Array(stepsCount).fill(0);
   });
   updatePresetNameDisplay('');
   renderSequencer();
   updateUrl();
 }
 
-// URL encode/decode for saving
+// URL encode/decode for saving (supports per-step tuplet)
+function encodeStep(stepVal) {
+  if (typeof stepVal === 'object' && stepVal !== null && 'tuplet' in stepVal && Array.isArray(stepVal.hits)) {
+    const n = TUPLET_OPTIONS.includes(stepVal.tuplet) ? stepVal.tuplet : 2;
+    return 't' + n + ':' + (stepVal.hits || []).slice(0, n).map(v => Math.min(3, Math.max(0, v || 0))).join('');
+  }
+  const n = typeof stepVal === 'number' ? stepVal : 0;
+  return String(Math.min(3, Math.max(0, n)));
+}
+
+function decodeStep(str) {
+  if (str && str.startsWith('t') && str.includes(':')) {
+    const m = str.match(/^t([2-6]):([0-3]*)$/);
+    if (m) {
+      const n = Math.min(6, Math.max(2, parseInt(m[1], 10)));
+      const hits = (m[2] || '').split('').slice(0, n).map(c => Math.min(3, Math.max(0, parseInt(c, 10) || 0)));
+      while (hits.length < n) hits.push(0);
+      return { tuplet: n, hits };
+    }
+  }
+  const n = parseInt(str, 10);
+  return isNaN(n) ? 0 : Math.min(3, Math.max(0, n));
+}
+
+function encodeRow(row, stepsCount) {
+  const steps = [];
+  let hasTuplet = false;
+  for (let i = 0; i < stepsCount; i++) {
+    const s = encodeStep((row || [])[i]);
+    if (s.startsWith('t')) hasTuplet = true;
+    steps.push(s);
+  }
+  return hasTuplet ? steps.join('|') : steps.join('');
+}
+
+function decodeRow(str, stepsCount) {
+  const parts = String(str || '').split('|');
+  if (parts.length === 1 && parts[0].length >= stepsCount && !parts[0].includes('t')) {
+    return parts[0].split('').slice(0, stepsCount).map(c => decodeStep(c));
+  }
+  const result = [];
+  for (let i = 0; i < stepsCount; i++) {
+    result.push(decodeStep(parts[i] || '0'));
+  }
+  return result;
+}
+
 function encodePattern() {
   const bpm = getBpm();
   const ts = timeSignatureSelect ? timeSignatureSelect.value : '4/4';
+  const stepsCount = getStepsCount();
   const parts = [bpm, ts];
+  let hasTuplet = false;
   INSTRUMENTS.forEach(inst => {
-    const row = pattern[inst.id] || Array(STEPS).fill(0);
-    parts.push(row.join(''));
+    const row = pattern[inst.id] || Array(stepsCount).fill(0);
+    const encoded = encodeRow(row, stepsCount);
+    if (encoded.includes('t')) hasTuplet = true;
+    parts.push(encoded);
   });
+  if (hasTuplet) parts.unshift(2);
   return btoa(encodeURIComponent(JSON.stringify(parts)));
 }
 
@@ -836,21 +1175,22 @@ function decodePattern(encoded) {
   try {
     const decoded = decodeURIComponent(atob(encoded));
     const parts = JSON.parse(decoded);
-    if (Array.isArray(parts) && parts.length >= 1) {
-      const bpm = parseInt(parts[0]) || DEFAULT_BPM;
-      bpmInput.value = bpm;
-      let offset = 1;
-      if (parts.length >= 2 && ['3/4', '4/4', '12/8'].includes(parts[1]) && timeSignatureSelect) {
-        timeSignatureSelect.value = parts[1];
-        offset = 2;
-      }
-      for (let i = offset; i < parts.length && i - offset < INSTRUMENTS.length; i++) {
-        const inst = INSTRUMENTS[i - offset];
-        const str = String(parts[i]).padEnd(STEPS, '0').slice(0, STEPS);
-        pattern[inst.id] = str.split('').map(Number);
-      }
-      return true;
+    if (!Array.isArray(parts) || parts.length < 1) return false;
+    let idx = 0;
+    if (parts[0] === 2) idx = 1;
+    const bpm = parseInt(parts[idx] || 0) || DEFAULT_BPM;
+    bpmInput.value = bpm;
+    idx++;
+    if (parts.length > idx && ['3/4', '4/4', '12/8'].includes(parts[idx]) && timeSignatureSelect) {
+      timeSignatureSelect.value = parts[idx];
+      idx++;
     }
+    const stepsCount = getStepsCount();
+    for (let i = idx; i < parts.length && i - idx < INSTRUMENTS.length; i++) {
+      const inst = INSTRUMENTS[i - idx];
+      pattern[inst.id] = decodeRow(String(parts[i] || ''), stepsCount);
+    }
+    return true;
   } catch (e) {
     console.warn('Invalid pattern data:', e);
   }
@@ -888,9 +1228,15 @@ function copyUrlToClipboard() {
 function yamlPresetToPattern(preset) {
   const p = getEmptyPattern();
   const inst = preset.instruments || {};
+  const stepsCount = getStepsCount();
   INSTRUMENTS.forEach(i => {
-    if (inst[i.id]) {
-      p[i.id] = repeatPattern(inst[i.id], STEPS);
+    const raw = inst[i.id];
+    if (!raw) return;
+    if (Array.isArray(raw)) {
+      p[i.id] = repeatPattern(raw, stepsCount);
+    } else {
+      const str = String(raw).padEnd(stepsCount, '0').slice(0, stepsCount);
+      p[i.id] = decodeRow(str, stepsCount);
     }
   });
   return p;
@@ -974,9 +1320,10 @@ function buildPresetFromCurrent(name) {
     soundSet: currentSoundSet || 'standard',
     volumes: { ...instrumentVolumes },
   };
+  const stepsCount = getStepsCount();
   INSTRUMENTS.forEach(inst => {
-    const row = pattern[inst.id] || Array(STEPS).fill(0);
-    preset.instruments[inst.id] = repeatPattern(row, STEPS);
+    const row = pattern[inst.id] || Array(stepsCount).fill(0);
+    preset.instruments[inst.id] = encodeRow(repeatPattern(row, stepsCount), stepsCount);
   });
   return preset;
 }
@@ -1650,6 +1997,175 @@ function closeRhythmModal(stopPreview = true) {
   rhythmModal.classList.remove('active');
 }
 
+function saveChainToStorage() {
+  try {
+    const data = chainPresets.map(c => ({ preset: c.preset, measures: c.measures || chainMeasuresPerPreset }));
+    localStorage.setItem(CHAIN_STORAGE, JSON.stringify(data));
+  } catch (_) {}
+}
+
+function loadChainFromStorage() {
+  try {
+    const stored = localStorage.getItem(CHAIN_STORAGE);
+    if (stored) {
+      const data = JSON.parse(stored);
+      if (Array.isArray(data)) {
+        chainPresets = data.map(c => ({ preset: c.preset, measures: c.measures || chainMeasuresPerPreset }));
+      }
+    }
+  } catch (_) {}
+}
+
+function renderChainList() {
+  const list = document.getElementById('chainList');
+  if (!list) return;
+  list.innerHTML = '';
+  chainPresets.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'chain-item';
+    const measures = item.measures || chainMeasuresPerPreset;
+    div.innerHTML = `
+      <span class="chain-order">${i + 1}</span>
+      <span class="chain-name">${escapeHtml(item.preset.name)}</span>
+      <input type="number" class="chain-measures-edit" min="1" max="64" value="${measures}" data-i="${i}" title="${t('chainMeasures')}">
+      <button type="button" class="btn btn-ghost btn-sm chain-remove" data-i="${i}">×</button>
+    `;
+    const measuresInput = div.querySelector('.chain-measures-edit');
+    measuresInput.addEventListener('change', () => {
+      const v = Math.max(1, Math.min(64, parseInt(measuresInput.value, 10) || 4));
+      chainPresets[i].measures = v;
+      measuresInput.value = v;
+      saveChainToStorage();
+    });
+    div.querySelector('.chain-remove').addEventListener('click', () => {
+      chainPresets.splice(i, 1);
+      renderChainList();
+      saveChainToStorage();
+    });
+    list.appendChild(div);
+  });
+}
+
+async function openChainModal() {
+  const modal = document.getElementById('chainModal');
+  const select = document.getElementById('chainPresetSelect');
+  modal.classList.add('active');
+  loadChainFromStorage();
+  renderChainList();
+  select.innerHTML = '<option value="">' + t('chainSelectPreset') + '</option>';
+  const allPresets = [];
+  const defaultPresets = rhythmPresetsCache.length > 0 ? rhythmPresetsCache : await loadPresetsFromYaml();
+  rhythmPresetsCache = defaultPresets;
+  const defaultOptgroup = document.createElement('optgroup');
+  defaultOptgroup.label = t('chainSourceDefault');
+  defaultPresets.forEach((p, i) => {
+    const opt = document.createElement('option');
+    opt.value = allPresets.length;
+    opt.textContent = p.name;
+    defaultOptgroup.appendChild(opt);
+    allPresets.push(p);
+  });
+  select.appendChild(defaultOptgroup);
+  if (currentUser) {
+    const myPresets = await loadMyPresets();
+    const mine = myPresets.filter(p => p.isOwner);
+    const shared = myPresets.filter(p => !p.isOwner);
+    if (mine.length > 0) {
+      const mineOptgroup = document.createElement('optgroup');
+      mineOptgroup.label = t('chainSourceMine');
+      mine.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = allPresets.length;
+        opt.textContent = p.name;
+        mineOptgroup.appendChild(opt);
+        allPresets.push({ name: p.name, bpm: p.bpm, timeSignature: p.timeSignature || '4/4', instruments: p.instruments || {}, soundSet: p.soundSet, volumes: p.volumes || {} });
+      });
+      select.appendChild(mineOptgroup);
+    }
+    if (shared.length > 0) {
+      const sharedOptgroup = document.createElement('optgroup');
+      sharedOptgroup.label = t('chainSourceShared');
+      shared.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = allPresets.length;
+        opt.textContent = p.name + (p.ownerEmail ? ' (' + formatOwnerEmail(p.ownerEmail) + ')' : '');
+        sharedOptgroup.appendChild(opt);
+        allPresets.push({ name: p.name, bpm: p.bpm, timeSignature: p.timeSignature || '4/4', instruments: p.instruments || {}, soundSet: p.soundSet, volumes: p.volumes || {} });
+      });
+      select.appendChild(sharedOptgroup);
+    }
+  }
+  window._chainPresetOptions = allPresets;
+  select.value = '';
+}
+
+function closeChainModal() {
+  document.getElementById('chainModal')?.classList.remove('active');
+}
+
+function addToChain() {
+  const select = document.getElementById('chainPresetSelect');
+  const measuresInput = document.getElementById('chainMeasuresInput');
+  if (!select || !select.value) return;
+  const i = parseInt(select.value, 10);
+  const presets = window._chainPresetOptions || [];
+  const measures = measuresInput ? Math.max(1, Math.min(64, parseInt(measuresInput.value, 10) || 4)) : chainMeasuresPerPreset;
+  if (i >= 0 && i < presets.length) {
+    chainPresets.push({ preset: presets[i], measures });
+    renderChainList();
+    saveChainToStorage();
+    select.value = '';
+  }
+}
+
+function clearChain() {
+  chainPresets = [];
+  renderChainList();
+  saveChainToStorage();
+}
+
+const RANDOM_STYLES = {
+  rock: { kick: [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], hihat: [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] },
+  hiphop: { kick: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], hihat: [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] },
+  latin: { kick: [1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0], snare: [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], hihat: [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] },
+  house: { kick: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], hihat: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] },
+};
+
+function generateRandomBeat() {
+  const styles = Object.keys(RANDOM_STYLES);
+  const style = styles[Math.floor(Math.random() * styles.length)];
+  const template = RANDOM_STYLES[style];
+  const p = getEmptyPattern();
+  const kick = template.kick.map(() => Math.random() < 0.7 ? 1 : 0);
+  const snare = template.snare.map(() => Math.random() < 0.6 ? 1 : 0);
+  const hihat = template.hihat.map(() => Math.random() < 0.8 ? 1 : 0);
+  p.kick = repeatPattern(kick, STEPS);
+  p.snare = repeatPattern(snare, STEPS);
+  p.hihat = repeatPattern(hihat, STEPS);
+  pattern = p;
+  bpmInput.value = 80 + Math.floor(Math.random() * 60);
+  updatePresetNameDisplay('');
+  renderSequencer();
+  updateUrl();
+}
+
+async function loadPresetFromFile(file) {
+  try {
+    const text = await file.text();
+    const data = typeof jsyaml !== 'undefined' ? jsyaml.load(text) : JSON.parse(text);
+    const presets = data?.presets || (Array.isArray(data) ? data : (data?.name && data?.instruments ? [data] : []));
+    if (presets.length === 0) {
+      await showAlert(t('loadFileNoPresets'), t('error'));
+      return;
+    }
+    const preset = presets[0];
+    await applyPreset(preset);
+    if (isPlaying) stopPlayback();
+  } catch (e) {
+    await showAlert(t('loadFileError') + ': ' + e.message, t('error'));
+  }
+}
+
 async function saveCurrentRhythmAsYaml() {
   const name = await showPrompt('', t('newPreset'), t('downloadTitle'));
   if (!name) return;
@@ -1661,9 +2177,10 @@ async function saveCurrentRhythmAsYaml() {
     volumes: Object.fromEntries(INSTRUMENTS.map(inst => [inst.id, getInstrumentVolume(inst.id)])),
     instruments: {}
   };
+  const stepsCount = getStepsCount();
   INSTRUMENTS.forEach(inst => {
-    const row = pattern[inst.id] || Array(STEPS).fill(0);
-    preset.instruments[inst.id] = repeatPattern(row, STEPS);
+    const row = pattern[inst.id] || Array(stepsCount).fill(0);
+    preset.instruments[inst.id] = encodeRow(repeatPattern(row, stepsCount), stepsCount);
   });
   const yaml = typeof jsyaml !== 'undefined'
     ? jsyaml.dump({ presets: [preset] }, { flowLevel: 4, lineWidth: -1 })
@@ -1687,6 +2204,7 @@ async function init() {
   } catch (_) {}
   loadFromUrl();
   initPattern();
+  loadChainFromStorage();
   renderSequencer();
 
   const soundSetSelect = document.getElementById('soundSet');
@@ -1767,18 +2285,81 @@ async function init() {
     if (e.code === 'Space' || e.code === 'Enter') {
       e.preventDefault();
       togglePlayback();
+    } else if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      generateRandomBeat();
+    } else if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      if (metronomeCheck) metronomeCheck.checked = !metronomeCheck.checked;
+    } else if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+      e.preventDefault();
+      const bpm = Math.min(240, getBpm() + 5);
+      bpmInput.value = bpm;
+      updateUrl();
+    } else if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+      e.preventDefault();
+      const bpm = Math.max(40, getBpm() - 5);
+      bpmInput.value = bpm;
+      updateUrl();
     }
   });
   clearBtn.addEventListener('click', clearPattern);
   copyUrlBtn.addEventListener('click', copyUrlToClipboard);
   rhythmBtn.addEventListener('click', openRhythm);
   closeRhythm.addEventListener('click', closeRhythmModal);
+
+  document.getElementById('chainBtn')?.addEventListener('click', openChainModal);
+  document.getElementById('closeChain')?.addEventListener('click', closeChainModal);
+  document.getElementById('chainAddPreset')?.addEventListener('click', addToChain);
+  document.getElementById('chainClear')?.addEventListener('click', clearChain);
+  document.getElementById('randomBtn')?.addEventListener('click', generateRandomBeat);
+
+  const masterVolEl = document.getElementById('masterVolume');
+  if (masterVolEl) {
+    const stored = localStorage.getItem(MASTER_VOLUME_STORAGE);
+    if (stored !== null) masterVolEl.value = stored;
+    masterVolEl.addEventListener('input', () => {
+      getAudioContext();
+      setMasterVolume(parseInt(masterVolEl.value, 10) / 100);
+      try { localStorage.setItem(MASTER_VOLUME_STORAGE, masterVolEl.value); } catch (_) {}
+    });
+    if (audioContext) setMasterVolume(parseInt(masterVolEl.value, 10) / 100);
+  }
+  const accentEl = document.getElementById('accentLevel');
+  if (accentEl) {
+    const stored = localStorage.getItem(ACCENT_STORAGE);
+    if (stored !== null) accentEl.value = stored;
+    accentEl.addEventListener('input', () => {
+      try { localStorage.setItem(ACCENT_STORAGE, accentEl.value); } catch (_) {}
+    });
+  }
+  const swingEl = document.getElementById('swingAmount');
+  if (swingEl) {
+    const stored = localStorage.getItem(SWING_STORAGE);
+    if (stored !== null) swingEl.value = stored;
+    swingEl.addEventListener('input', () => {
+      try { localStorage.setItem(SWING_STORAGE, swingEl.value); } catch (_) {}
+    });
+  }
   const saveRhythmBtn = document.getElementById('saveRhythmBtn');
   if (saveRhythmBtn) saveRhythmBtn.addEventListener('click', saveCurrentRhythmAsYaml);
+  const loadFileBtn = document.getElementById('loadFileBtn');
+  const loadFileInput = document.getElementById('loadFileInput');
+  if (loadFileBtn && loadFileInput) {
+    loadFileBtn.addEventListener('click', () => loadFileInput.click());
+    loadFileInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        loadPresetFromFile(file);
+        loadFileInput.value = '';
+      }
+    });
+  }
 
   if (timeSignatureSelect) {
     timeSignatureSelect.addEventListener('change', () => {
       if (isPlaying) stopPlayback();
+      initPattern();
       renderSequencer();
       updateUrl();
     });
