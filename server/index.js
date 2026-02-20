@@ -22,7 +22,7 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || true,
   credentials: true,
 }));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 1000 }));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -30,7 +30,7 @@ app.use(passport.initialize());
 
 app.use(jwtAuth);
 
-app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), authRoutes);
+app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 50 }), authRoutes);
 app.use('/api/me', meRoutes);
 app.use('/api/presets', presetRoutes);
 app.use('/api/users', usersRoutes);

@@ -1087,7 +1087,8 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
     item.querySelector('.my-preset-name').addEventListener('click', async () => {
       await applyPreset(p);
       closeMyPresetsModal();
-      if (!isPlaying) startPlayback();
+      if (isPlaying) stopPlayback();
+      startPlayback();
     });
     const favBtn = item.querySelector('.btn-favourite');
     if (favBtn) favBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFavourite(p.id); });
@@ -1097,7 +1098,8 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
       e.stopPropagation();
       await applyPreset(p);
       closeMyPresetsModal();
-      if (!isPlaying) startPlayback();
+      if (isPlaying) stopPlayback();
+      startPlayback();
     });
     const editBtn = item.querySelector('.btn-edit');
     const delBtn = item.querySelector('.btn-danger');
@@ -1519,6 +1521,8 @@ async function applyPreset(preset) {
   if (preset.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(preset.timeSignature)) {
     timeSignatureSelect.value = preset.timeSignature;
   }
+  currentStep = 0;
+  updateCurrentStepUI();
   // Restore instrument volumes from preset
   if (preset.volumes && typeof preset.volumes === 'object') {
     INSTRUMENTS.forEach(inst => {
@@ -1574,7 +1578,8 @@ function renderPresetList(presets, searchTerm = '') {
       btn.addEventListener('click', async () => {
         await applyPreset(preset);
         closeRhythmModal();
-        if (!isPlaying) startPlayback();
+        if (isPlaying) stopPlayback();
+        startPlayback();
       });
       container.appendChild(btn);
     });
