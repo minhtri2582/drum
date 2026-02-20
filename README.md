@@ -4,7 +4,7 @@ Công cụ trống điện tử trực tuyến để tạo, lưu và chỉnh s�
 
 ## Tính năng
 
-- **Sequencer 32 bước** với 9 nhạc cụ: Bàn đạp hi-hat, Tom-tom (nhấp 2 lần → tom thấp), Chân tom sàn, Cymbal, Ride, Cowbell, Hi-hat, Trống Snare, Trống bass
+- **Sequencer 32 bước** với 9 nhạc cụ: Bàn đạp hi-hat, Tom-tom (nhấp 2 lần → tom thấp), Chân tom sàn, Crash, Ride, Cowbell, Hi-hat, Trống snare, Trống bass
 - **Phát nhạc** với điều chỉnh BPM (40–240)
 - **Lưu & chia sẻ** bằng cách sao chép link (pattern được mã hóa trong URL)
 - **Đăng nhập Google** – lưu preset riêng tư trên server

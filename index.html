@@ -31,6 +31,27 @@
     </div>
 
     <div class="controls">
+      <div class="controls-row controls-row-actions">
+        <button id="rhythmBtn" class="btn btn-browse" data-i18n="rhythmPresets">Điệu mẫu</button>
+        <button id="chainBtn" class="btn btn-info" data-i18n="chain">Chain</button>
+        <button id="myPresetsBtn" class="btn btn-info" style="display:none" data-i18n="myPresets">Điệu của tôi</button>
+        <button id="randomBtn" class="btn btn-ghost" data-i18n="random">Random</button>
+        <button id="clearBtn" class="btn btn-danger" data-i18n="clear">Xoá</button>
+      </div>
+      <div class="controls-row controls-row-copy">
+        <button id="copyUrlBtn" class="btn btn-success btn-copy" data-i18n="copyLink">Sao chép link share</button>
+        <button id="saveRhythmBtn" class="btn btn-download" data-i18n="download">Tải xuống</button>
+        <button id="loadFileBtn" class="btn btn-upload" data-i18n="loadFile">Tải file</button>
+        <input type="file" id="loadFileInput" accept=".yaml,.yml,.json" style="display:none">
+        <span id="copyStatus" class="copy-status"></span>
+      </div>
+    </div>
+
+    <div class="current-preset-section">
+      <span id="currentPresetName" class="current-preset-name" data-i18n-empty="currentPresetEmpty" data-i18n-before="currentPresetLabel"></span>
+    </div>
+
+    <div class="sequencer-transport">
       <div class="controls-row controls-row-primary">
         <button id="playBtn" class="btn btn-play" aria-label="Phát">
           <span class="play-icon">▶</span>
@@ -58,38 +79,6 @@
           </select>
         </div>
       </div>
-      <div class="controls-row controls-row-actions">
-        <button id="rhythmBtn" class="btn btn-browse" data-i18n="rhythmPresets">Điệu mẫu</button>
-        <button id="chainBtn" class="btn btn-info" data-i18n="chain">Chain</button>
-        <button id="myPresetsBtn" class="btn btn-info" style="display:none" data-i18n="myPresets">Điệu của tôi</button>
-        <button id="randomBtn" class="btn btn-ghost" data-i18n="random">Random</button>
-        <button id="clearBtn" class="btn btn-danger" data-i18n="clear">Xoá</button>
-      </div>
-      <div class="controls-row controls-row-volume">
-        <div class="master-volume-control">
-          <label for="masterVolume" data-i18n="masterVolume">Master Vol</label>
-          <input type="range" id="masterVolume" min="0" max="100" value="100">
-        </div>
-        <div class="dynamics-control">
-          <label for="accentLevel" data-i18n="accentLevel">Accent</label>
-          <input type="range" id="accentLevel" min="0" max="100" value="100">
-        </div>
-        <div class="swing-control">
-          <label for="swingAmount" data-i18n="swingAmount">Swing</label>
-          <input type="range" id="swingAmount" min="0" max="100" value="0">
-        </div>
-      </div>
-      <div class="controls-row controls-row-copy">
-        <button id="copyUrlBtn" class="btn btn-success btn-copy" data-i18n="copyLink">Sao chép link share</button>
-        <button id="saveRhythmBtn" class="btn btn-download" data-i18n="download">Tải xuống</button>
-        <button id="loadFileBtn" class="btn btn-upload" data-i18n="loadFile">Tải file</button>
-        <input type="file" id="loadFileInput" accept=".yaml,.yml,.json" style="display:none">
-        <span id="copyStatus" class="copy-status"></span>
-      </div>
-    </div>
-
-    <div class="current-preset-section">
-      <span id="currentPresetName" class="current-preset-name" data-i18n-empty="currentPresetEmpty" data-i18n-before="currentPresetLabel"></span>
     </div>
 
     <div class="sequencer">
@@ -99,6 +88,21 @@
         <div class="steps-header"></div>
       </div>
       <div id="sequencerGrid" class="sequencer-grid"></div>
+    </div>
+
+    <div class="controls-row controls-row-volume controls-row-volume-end">
+      <div class="master-volume-control">
+        <label for="masterVolume" data-i18n="masterVolume">Master Vol</label>
+        <input type="range" id="masterVolume" min="0" max="100" value="100">
+      </div>
+      <div class="dynamics-control">
+        <label for="accentLevel" data-i18n="accentLevel">Accent</label>
+        <input type="range" id="accentLevel" min="0" max="100" value="100">
+      </div>
+      <div class="swing-control">
+        <label for="swingAmount" data-i18n="swingAmount">Swing</label>
+        <input type="range" id="swingAmount" min="0" max="100" value="0">
+      </div>
     </div>
   </div>
 
@@ -193,8 +197,8 @@
         <label><input type="radio" name="tupletType" value="2"> <span data-i18n="tuplet2">Liên 2</span></label>
         <label><input type="radio" name="tupletType" value="3"> <span data-i18n="tuplet3">Liên 3</span></label>
         <label><input type="radio" name="tupletType" value="4"> <span data-i18n="tuplet4">Liên 4</span></label>
-        <label><input type="radio" name="tupletType" value="5"> <span data-i18n="tuplet5">Liên 5</span></label>
-        <label><input type="radio" name="tupletType" value="6"> <span data-i18n="tuplet6">Liên 6</span></label>
+        <label class="tuplet-mobile-hidden"><input type="radio" name="tupletType" value="5"> <span data-i18n="tuplet5">Liên 5</span></label>
+        <label class="tuplet-mobile-hidden"><input type="radio" name="tupletType" value="6"> <span data-i18n="tuplet6">Liên 6</span></label>
       </div>
       <div id="tupletHitsRow" class="tuplet-hits-row hidden">
         <span data-i18n="tupletHits">Hits:</span>

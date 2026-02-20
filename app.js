@@ -764,8 +764,34 @@ function renderSequencer() {
         badge.textContent = String(stepData.tuplet);
         step.appendChild(badge);
       }
-      step.addEventListener('click', (e) => { e.preventDefault(); if (isTuplet) openTupletPopover(inst.id, i, step); else toggleStep(inst.id, i); });
+      step.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (step._longPressHandled) { step._longPressHandled = false; return; }
+        const data = getStepData(pattern[inst.id], i);
+        if (data.isTuplet) openTupletPopover(inst.id, i, step);
+        else toggleStep(inst.id, i);
+      });
       step.addEventListener('contextmenu', (e) => { e.preventDefault(); openTupletPopover(inst.id, i, step); });
+      (function setupLongPress(instId, stepIdx, el) {
+        let timer = null;
+        const LONG_PRESS_MS = 500;
+        const onStart = (e) => {
+          if (e.pointerType === 'mouse' && e.button !== 0) return;
+          timer = setTimeout(() => {
+            timer = null;
+            el._longPressHandled = true;
+            openTupletPopover(instId, stepIdx, el);
+          }, LONG_PRESS_MS);
+        };
+        const onEnd = () => {
+          if (timer) { clearTimeout(timer); timer = null; }
+        };
+        const onCancel = () => { if (timer) clearTimeout(timer); timer = null; };
+        el.addEventListener('pointerdown', onStart);
+        el.addEventListener('pointerup', onEnd);
+        el.addEventListener('pointerleave', onEnd);
+        el.addEventListener('pointercancel', onCancel);
+      })(inst.id, i, step);
       stepsEl.appendChild(step);
     }
     row.appendChild(nameEl);
