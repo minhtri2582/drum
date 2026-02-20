@@ -20,3 +20,5 @@ server/node_modules/
 samples/
 docs/
 DRSKit2_1.zip
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor/rules/snyk_rules.mdc

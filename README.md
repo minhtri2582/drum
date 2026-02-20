@@ -1,108 +1,111 @@
-# Trống điện tử online - Drum Machine
+# Tri's Drum Player
 
-Công cụ trống điện tử trực tuyến để tạo, lưu và chỉnh sửa điệu trống dễ dàng.
+Trống điện tử online - Drum Machine. Tạo, chỉnh sửa và phát các điệu trống dễ dàng.
 
-## Tính năng
+## Tổng quan
 
-- **Sequencer 32 bước** với 9 nhạc cụ: Bàn đạp hi-hat, Tom-tom (nhấp 2 lần → tom thấp), Chân tom sàn, Crash, Ride, Cowbell, Hi-hat, Trống snare, Trống bass
-- **Phát nhạc** với điều chỉnh BPM (40–240)
-- **Lưu & chia sẻ** bằng cách sao chép link (pattern được mã hóa trong URL)
-- **Đăng nhập Google** – lưu preset riêng tư trên server
-- **Preset server** – anonymous và login: dùng preset công khai; login: dùng thêm preset riêng
-- **Nhịp điệu mẫu**: Basic Rock, Funk, Hip Hop, House, Disco
-- **Tắt âm** từng nhạc cụ bằng cách nhấp vào tên nhạc cụ
-- **Âm thanh** tổng hợp bằng Web Audio API (không cần file âm thanh)
+Web app Drum Machine (step sequencer) cho phép:
 
-## Chạy local
+- Tạo và chỉnh sửa pattern trống
+- Chọn điệu mẫu có sẵn
+- Lưu điệu cá nhân (cần đăng nhập)
+- Chia sẻ điệu với người khác
+- Xuất/nhập file YAML hoặc JSON
 
-**Chỉ frontend (không có auth/preset server):**
-```bash
-cd drum
-python3 -m http.server 8765
-```
-Mở: http://localhost:8765
+## Kiến trúc
 
-**Full stack (PostgreSQL + Google OAuth):**
-```bash
-# 1. Cấu hình: copy server/.env.example -> server/.env
-#    Điền GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, JWT_SECRET, DATABASE_URL
+| Thành phần | Mô tả |
+|------------|--------|
+| **Frontend** | `index.html`, `app.js`, `styles.css`, `i18n.js` |
+| **Backend** | Node.js/Express trong `server/` |
+| **Dữ liệu** | Presets YAML (`styles/presets.yaml`), SQLite cho user presets |
+| **Âm thanh** | WAV trong `audio/`, Web Audio API (synthesis fallback) |
 
-# 2. Chạy với docker-compose
-docker-compose up -d
+## Mô hình dữ liệu
 
-# 3. Hoặc chạy thủ công (cần PostgreSQL):
-cd server && npm install && npm start
-```
+### Pattern (Step Sequencer)
 
-## Docker
+- **9 nhạc cụ**: hihatPedal, tom, floorTom, cymbal, ride, cowbell, hihat, snare, kick
+- **Số step**: 16–32 tùy time signature (4/4, 3/4, 12/8)
+- **Giá trị step**: 0 (tắt), 1 (bình thường), 2 (variant: open hi-hat, rimshot...), 3 (ghost note)
+- **Tuplet**: Mỗi step có thể là tuplet 2–6 (object `{ tuplet, hits }`)
 
-```bash
-docker build -t minhtri2582/drum-machine:latest .
-docker run -p 8080:80 drum-machine:latest
-```
+### Preset
 
-**Lưu ý:** Cần cấu hình `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `JWT_SECRET`, `GOOGLE_CALLBACK_URL` khi deploy.
+- `name`, `bpm`, `timeSignature`, `instruments`, `soundSet`, `volumes`
 
-### Lỗi redirect_uri_mismatch
+## Chạy ứng dụng
 
-1. Mở [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
-2. Chọn OAuth 2.0 Client ID (loại **Web application**)
-3. Trong **Authorized redirect URIs**, thêm: `http://localhost:3000/api/auth/google/callback` (local) hoặc `https://your-domain.com/api/auth/google/callback` (production)
-4. Trong **Authorized JavaScript origins**, thêm: `http://localhost:3000` hoặc domain production
-5. Lưu và đợi vài phút để Google cập nhật
-
-## Deploy K3s (Helm)
-
-**Bắt buộc:** Chạy [docs/PREPARE-DEPLOY.md](docs/PREPARE-DEPLOY.md) trước (PostgreSQL + Secret).
-
-| Bước | Tài liệu |
-|------|----------|
-| Chuẩn bị (PostgreSQL + Secrets) | [docs/PREPARE-DEPLOY.md](docs/PREPARE-DEPLOY.md) |
-| Build, push và deploy | [docs/DEPLOY-K3S.md](docs/DEPLOY-K3S.md) |
+### Development
 
 ```bash
-# Sau khi đã tạo PostgreSQL và Secret
-docker build -t minhtri2582/drum-machine:latest .
-docker push minhtri2582/drum-machine:latest
-helm upgrade --install drum-machine ./helm/drum-machine \
-  -f ./helm/drum-machine/values-k3s-elisoft.yaml \
-  -n drum-machine --create-namespace
+# Frontend only (static)
+# Mở index.html hoặc dùng static server
+
+# Full stack (với backend)
+cd server
+npm install
+npm start
 ```
 
-## Cách sử dụng
+### Docker
 
-1. **Tạo điệu trống**: Nhấp vào các ô vuông để bật/tắt beat
-2. **Phát**: Nhấn nút Play (▶)
-3. **Lưu**: Nhấn "Sao chép link share" và dán link vào bookmark hoặc gửi cho người khác
-4. **Chọn mẫu**: Nhấn "Nhịp điệu" để chọn nhịp có sẵn
-5. **Xóa**: Nhấn "Xoá" để reset pattern
+```bash
+docker-compose up
+```
 
-## Cấu trúc file
+### Kubernetes (Helm)
+
+```bash
+helm install drum-machine ./helm/drum-machine -f helm/drum-machine/values-k3s-elisoft.yaml
+```
+
+## Chức năng chính
+
+| Chức năng | Mô tả |
+|-----------|--------|
+| **Điệu mẫu** | Chọn preset từ YAML hoặc server |
+| **Chain** | Phát nhiều preset liên tiếp, mỗi preset N ô nhịp |
+| **Điệu của tôi** | CRUD presets cá nhân (cần đăng nhập Google) |
+| **Random** | Tạo beat ngẫu nhiên theo style (rock, hiphop, latin, house) |
+| **Tuplet** | Right-click hoặc long-press step để đặt tuplet 2–6 |
+| **Share link** | Pattern encode trong URL `?data=` |
+| **Tải xuống/Tải lên** | Xuất/nhập YAML hoặc JSON |
+
+## Phím tắt
+
+- **Space / Enter** – Play/Stop
+- **R** – Random beat
+- **M** – Bật/tắt metronome
+- **+ / -** – Tăng/giảm BPM 5
+
+## API (Backend)
+
+- `GET /api/me` – Thông tin user
+- `GET/POST/PUT/DELETE /api/presets` – CRUD presets
+- `GET /api/presets/mine` – Presets của user
+- `POST /api/presets/:id/favourite` – Favourite preset
+- `POST /api/presets/:id/like` – Like preset
+- `POST /api/presets/share` – Share preset cho user
+- `GET /api/users/search?q=` – Tìm user để share
+
+## Đa ngôn ngữ
+
+- Tiếng Việt (mặc định)
+- English
+
+## Cấu trúc thư mục
 
 ```
 drum/
-├── index.html           # Giao diện chính
-├── styles.css           # CSS
-├── app.js               # Logic drum machine
-├── styles/
-│   └── presets.yaml     # Nhịp điệu mẫu (Basic Rock, Funk, Hip Hop, …)
-├── server/              # Backend API
-│   ├── index.js         # Express server
-│   ├── auth.js          # Google OAuth + JWT
-│   ├── db.js            # PostgreSQL + schema
-│   └── routes/          # API routes
-├── docs/
-│   ├── PREPARE-DEPLOY.md   # PostgreSQL + Secret
-│   └── DEPLOY-K3S.md       # Deploy với Helm
-├── helm/drum-machine/    # Helm chart K3s
-├── docker-compose.yaml
-└── README.md
+├── index.html          # Trang chính
+├── app.js              # Logic ứng dụng
+├── styles.css          # Giao diện
+├── i18n.js             # Đa ngôn ngữ
+├── guide.html          # Hướng dẫn
+├── server/             # Backend Express
+├── styles/presets.yaml # Điệu mẫu
+├── audio/              # Sample WAV
+├── helm/               # Helm chart K8s
+└── .github/workflows/  # CI/CD
 ```
-
-## Thêm nhịp điệu mẫu
-
-Chỉnh sửa `styles/presets.yaml` hoặc dùng nút "Lưu nhịp hiện tại" trong modal Điệu mẫu để tải file YAML, sau đó thêm nội dung vào `presets.yaml`.
-
-## Tham khảo
-
-- Giao diện tham khảo [Musicca Drum Machine](https://www.musicca.com/vi/trong-dien-tu)

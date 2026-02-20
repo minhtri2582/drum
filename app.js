@@ -259,9 +259,16 @@ function getOpenHatRimshotPattern() {
 
 function getTimeSignatureConfig() {
   const val = timeSignatureSelect ? timeSignatureSelect.value : '4/4';
-  if (val === '3/4') return { measures: 6, subdivisions: 4 };
-  if (val === '12/8') return { measures: 8, subdivisions: 3 };
-  return { measures: 8, subdivisions: 4 };
+  if (val === '3/4') {
+    // 3/4: 2 ô nhịp, mỗi ô 3 phách, mỗi phách 4 steps → 12 steps/measure, 24 total
+    return { measures: 2, subdivisions: 12 };
+  }
+  if (val === '12/8') {
+    // 12/8: 2 ô nhịp, mỗi ô 4 phách, mỗi phách 3 steps → 12 steps/measure, 24 total
+    return { measures: 2, subdivisions: 12 };
+  }
+  // 4/4: 4 steps = 1 phách, 4 phách = 1 ô nhịp → 16 steps/measure
+  return { measures: 2, subdivisions: 16 };
 }
 
 function getMeasuresCount() {
@@ -270,6 +277,15 @@ function getMeasuresCount() {
 
 function getSubdivisionsPerMeasure() {
   return getTimeSignatureConfig().subdivisions;
+}
+
+function getStepsPerBeat() {
+  const stepsCount = getStepsCount();
+  const measuresCount = getMeasuresCount();
+  const ts = timeSignatureSelect ? timeSignatureSelect.value : '4/4';
+  const colsPerMeasure = stepsCount / measuresCount;
+  const beatsPerMeasure = ts === '3/4' ? 3 : 4;
+  return Math.max(1, Math.floor(colsPerMeasure / beatsPerMeasure));
 }
 
 function getStepsCount() {
@@ -712,7 +728,8 @@ function playDrum(instrumentId, value = 1, velocityMultiplier = 1) {
 // Build sequencer UI
 function renderSequencer() {
   const stepsCount = getStepsCount();
-  const subdivisions = getSubdivisionsPerMeasure();
+  const measuresCount = getMeasuresCount();
+  const colsPerMeasure = stepsCount / measuresCount;
   sequencerGrid.innerHTML = '';
   INSTRUMENTS.forEach(inst => {
     const row = document.createElement('div');
@@ -744,7 +761,7 @@ function renderSequencer() {
       const step = document.createElement('button');
       const stepData = getStepData(pattern[inst.id], i);
       const val = stepData.isTuplet ? (stepData.hits && stepData.hits.some(h => h)) : stepData.value;
-      const isDownbeat = i % subdivisions === 0;
+      const isDownbeat = i % colsPerMeasure === 0;
       const isTuplet = stepData.isTuplet;
       step.className = 'step' + (isDownbeat ? ' downbeat' : '') + (val ? ' active' : '') +
         (!isTuplet && stepData.value === 2 ? ' variant' : '') + (!isTuplet && stepData.value === 3 ? ' ghost' : '') +
@@ -810,12 +827,18 @@ function updateGridHeader() {
   header.className = 'steps-header steps-header-' + stepsCount;
   header.innerHTML = '';
   const colsPerMeasure = stepsCount / measuresCount;
-  for (let m = 0; m < measuresCount; m++) {
+  const ts = timeSignatureSelect ? timeSignatureSelect.value : '4/4';
+  const beatsPerMeasure = ts === '3/4' ? 3 : 4;
+  const stepsPerBeat = Math.max(1, Math.floor(colsPerMeasure / beatsPerMeasure)); // 4/4: 4 steps = 1 phách
+  for (let i = 0; i < stepsCount; i++) {
+    const stepInMeasure = i % colsPerMeasure;
+    const beatIndex = Math.floor(stepInMeasure / stepsPerBeat);
+    const isFirstStepOfBeat = stepInMeasure % stepsPerBeat === 0 && beatIndex < beatsPerMeasure;
+    const beatNum = beatIndex + 1;
     const span = document.createElement('span');
     span.className = 'measure';
-    span.textContent = m + 1;
-    const startCol = m * colsPerMeasure + 1;
-    span.style.gridColumn = startCol;
+    span.textContent = isFirstStepOfBeat ? String(beatNum) : '';
+    span.style.gridColumn = i + 1;
     header.appendChild(span);
   }
 }
@@ -1049,18 +1072,22 @@ function startPlayback() {
   currentStep = 0;
   updateCurrentStepUI();
   const stepsCount = getStepsCount();
-  const subdivisions = getSubdivisionsPerMeasure();
+  const measuresCount = getMeasuresCount();
+  const colsPerMeasure = stepsCount / measuresCount;
+  const stepsPerBeat = getStepsPerBeat();
 
   function tick() {
     const playbackPattern = getPlaybackPattern();
     if (metronomeCheck && metronomeCheck.checked) {
-      const isQuarterBeat = currentStep % subdivisions === 0;
+      const stepInMeasure = currentStep % colsPerMeasure;
+      const isQuarterBeat = stepInMeasure % stepsPerBeat === 0;
       if (isQuarterBeat) {
-        playMetronomeClick(currentStep === 0);
+        playMetronomeClick(stepInMeasure === 0);
       }
     }
     const accent = getAccentLevel();
-    const velocityMult = (currentStep % subdivisions === 0 && currentStep < subdivisions) ? (0.5 + 0.5 * accent) : 1;
+    const stepInMeasure = currentStep % colsPerMeasure;
+    const velocityMult = (stepInMeasure === 0) ? (0.5 + 0.5 * accent) : 1;
     INSTRUMENTS.forEach(inst => {
       const row = playbackPattern[inst.id];
       const stepData = getStepData(row, currentStep);
@@ -2400,6 +2427,12 @@ async function init() {
     if (document.visibilityState === 'visible' && audioContext?.state === 'suspended') {
       audioContext.resume();
     }
+  });
+
+  // Chặn menu mặc định khi long-press trên iPhone (trừ input/textarea để copy/paste)
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.matches('input, textarea, select')) return;
+    e.preventDefault();
   });
 
   // rhythmModal: chỉ đóng khi click nút Đóng hoặc chọn điệu

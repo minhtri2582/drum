@@ -60,6 +60,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Chặn menu mặc định khi long-press trên iPhone/iPad (chỉ trang drum chính) */
+body.app-drum {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body.app-drum input,
+body.app-drum textarea,
+body.app-drum select {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -759,8 +774,7 @@ body {
 .measure {
   font-size: 0.75rem;
   color: var(--text-secondary);
-  text-align: left;
-  padding-left: 2px;
+  text-align: center;
 }
 
 .sequencer-grid {
@@ -820,7 +834,7 @@ body {
   transition: background 0.15s, transform 0.1s;
   touch-action: manipulation;
   user-select: none;
-  -webkit-touch-callout: none; /* Cho phép long-press mở Tuplet trên iPhone */
+  -webkit-touch-callout: none; /* Tắt menu mặc định, dùng long-press mở Tuplet */
 }
 
 /* Highlight nhịp đập đầu tiên của từng phách (ô 1, 5, 9, 13) */
