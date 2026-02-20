@@ -37,6 +37,10 @@ app.use('/api/users', usersRoutes);
 
 app.use(express.static(path.join(__dirname, '..')));
 
+app.get('/guide.html', (req, res) => {
+  res.sendFile(path.join(ROOT, 'guide.html'));
+});
+
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.get('/api/audio/sets', (req, res) => {

@@ -1054,18 +1054,20 @@ function startPlayback() {
     if (currentStep >= stepsCount) {
       currentStep = 0;
       chainPlaybackMeasureCount++;
-      const measuresForCurrent = chainPresets[chainPlaybackIndex].measures || chainMeasuresPerPreset;
-      if (chainPresets.length > 0 && chainPlaybackMeasureCount >= measuresForCurrent) {
-        chainPlaybackMeasureCount = 0;
-        chainPlaybackIndex = (chainPlaybackIndex + 1) % chainPresets.length;
-        const p = chainPresets[chainPlaybackIndex].preset;
-        pattern = yamlPresetToPattern(p);
-        if (p.bpm) bpmInput.value = p.bpm;
-        if (p.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(p.timeSignature)) {
-          timeSignatureSelect.value = p.timeSignature;
+      if (chainPresets.length > 0) {
+        const measuresForCurrent = chainPresets[chainPlaybackIndex].measures || chainMeasuresPerPreset;
+        if (chainPlaybackMeasureCount >= measuresForCurrent) {
+          chainPlaybackMeasureCount = 0;
+          chainPlaybackIndex = (chainPlaybackIndex + 1) % chainPresets.length;
+          const p = chainPresets[chainPlaybackIndex].preset;
+          pattern = yamlPresetToPattern(p);
+          if (p.bpm) bpmInput.value = p.bpm;
+          if (p.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(p.timeSignature)) {
+            timeSignatureSelect.value = p.timeSignature;
+          }
+          renderSequencer();
+          updatePresetNameDisplay(p.name + ' (' + (chainPlaybackIndex + 1) + '/' + chainPresets.length + ')');
         }
-        renderSequencer();
-        updatePresetNameDisplay(p.name + ' (' + (chainPlaybackIndex + 1) + '/' + chainPresets.length + ')');
       }
     }
     updateCurrentStepUI();
@@ -2366,6 +2368,13 @@ async function init() {
   }
 
   bpmInput.addEventListener('change', updateUrl);
+
+  // Giữ playback loop khi chuyển tab - resume AudioContext khi quay lại
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && audioContext?.state === 'suspended') {
+      audioContext.resume();
+    }
+  });
 
   // rhythmModal: chỉ đóng khi click nút Đóng hoặc chọn điệu
 

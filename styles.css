@@ -165,10 +165,12 @@ body {
   border: none;
   background: transparent;
   color: var(--accent);
+  box-shadow: none;
 }
 
 .btn-ghost:hover {
   background: var(--accent-muted);
+  color: var(--accent-hover);
 }
 
 .btn-sm {
@@ -251,12 +253,22 @@ body {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: background 0.2s, opacity 0.2s;
+  transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
   touch-action: manipulation;
+  box-shadow: var(--shadow-subtle);
 }
 
 .btn:hover {
   background: var(--bg-tertiary);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .btn-play {
@@ -268,23 +280,27 @@ body {
   justify-content: center;
   background: var(--accent);
   border: none;
-  color: #000;
+  color: #1a1a1a;
   border-radius: 50%;
-  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 2px 12px rgba(255, 159, 10, 0.4);
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
 }
 
 .btn-play:hover {
   background: var(--accent-hover);
   transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(255, 159, 10, 0.5);
 }
 
 .btn-play.playing {
   background: var(--red);
   color: #fff;
+  box-shadow: 0 2px 12px rgba(255, 69, 58, 0.4);
 }
 
 .btn-play.playing:hover {
   background: var(--red-hover);
+  box-shadow: 0 4px 16px rgba(255, 69, 58, 0.5);
 }
 
 .play-icon {
@@ -510,56 +526,67 @@ body {
 */
 .btn-primary {
   background: var(--accent);
-  color: #000;
+  color: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(255, 159, 10, 0.25);
 }
 .btn-primary:hover {
   background: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(255, 159, 10, 0.35);
 }
 
-/* Success: save, add, confirm, export */
+/* Success: save, add, confirm, export - xanh lá */
 .btn-success {
   background: var(--green);
-  color: white;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(48, 209, 88, 0.25);
 }
 .btn-success:hover {
   background: var(--green-hover);
+  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.35);
 }
 
-/* Info: share, user presets */
+/* Info: share, user presets - xanh dương */
 .btn-info {
   background: var(--blue);
-  color: white;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25);
 }
 .btn-info:hover {
   background: var(--blue-hover);
+  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.35);
 }
 
-/* Browse: browse presets */
+/* Browse: browse presets - tím */
 .btn-browse {
   background: var(--purple);
-  color: white;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(191, 90, 242, 0.25);
 }
 .btn-browse:hover {
   background: var(--purple-hover);
+  box-shadow: 0 4px 12px rgba(191, 90, 242, 0.35);
 }
 
-/* Danger: delete, clear */
+/* Danger: delete, clear - đỏ */
 .btn-danger {
   background: var(--red);
-  color: white;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 69, 58, 0.25);
 }
 .btn-danger:hover {
   background: var(--red-hover);
+  box-shadow: 0 4px 12px rgba(255, 69, 58, 0.35);
 }
 
-/* Close: close, cancel - màu đỏ */
+/* Close: close, cancel - outline đỏ */
 .btn-close {
   background: transparent;
   color: var(--red);
-  border: 1px solid var(--red);
+  border: 1.5px solid var(--red);
+  box-shadow: none;
 }
 .btn-close:hover {
-  background: rgba(255, 69, 58, 0.2);
+  background: rgba(255, 69, 58, 0.15);
   color: var(--red-hover);
   border-color: var(--red-hover);
 }
@@ -567,39 +594,48 @@ body {
 /* Edit: edit action */
 .btn-edit {
   background: var(--accent);
-  color: #000;
+  color: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(255, 159, 10, 0.25);
 }
 .btn-edit:hover {
   background: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(255, 159, 10, 0.35);
 }
 
-/* Download: tải xuống file */
+/* Download: tải xuống file - xanh ngọc */
 .btn-download {
   background: var(--teal);
-  color: #000;
+  color: #0d1f26;
+  box-shadow: 0 2px 8px rgba(100, 210, 255, 0.25);
 }
 .btn-download:hover {
   background: var(--teal-hover);
+  box-shadow: 0 4px 12px rgba(100, 210, 255, 0.35);
 }
 
+/* Upload: tải file lên */
 .btn-upload {
   background: var(--blue);
-  color: white;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25);
 }
 .btn-upload:hover {
   background: var(--blue-hover);
+  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.35);
 }
 
 /* Legacy aliases for compatibility */
-.btn-save { background: var(--green); color: white; }
-.btn-save:hover { background: var(--green-hover); }
-.btn-secondary { background: var(--blue); color: white; }
-.btn-secondary:hover { background: var(--blue-hover); }
+.btn-save { background: var(--green); color: #fff; box-shadow: 0 2px 8px rgba(48, 209, 88, 0.25); }
+.btn-save:hover { background: var(--green-hover); box-shadow: 0 4px 12px rgba(48, 209, 88, 0.35); }
+.btn-secondary { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25); }
+.btn-secondary:hover { background: var(--blue-hover); box-shadow: 0 4px 12px rgba(10, 132, 255, 0.35); }
 
 /* Disabled state for all buttons */
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .save-section {
@@ -1196,20 +1232,22 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   border-radius: 6px;
+  box-shadow: none;
+  transition: background 0.2s, color 0.2s;
 }
 
 .btn-icon:hover {
-  background: var(--cell-inactive);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
 .btn-icon.btn-play:hover {
-  background: rgba(48, 209, 88, 0.25);
+  background: rgba(48, 209, 88, 0.2);
   color: var(--green);
 }
 
 .btn-icon.btn-edit:hover {
-  background: rgba(10, 132, 255, 0.25);
+  background: rgba(10, 132, 255, 0.2);
   color: var(--blue);
 }
 
@@ -1218,14 +1256,14 @@ body {
   color: var(--text-secondary);
 }
 .btn-icon.btn-danger:hover {
-  background: rgba(255, 69, 58, 0.25) !important;
+  background: rgba(255, 69, 58, 0.2) !important;
   color: var(--red);
 }
 
 .btn-icon.btn-favourite {
   background: transparent !important;
   color: var(--text-secondary);
-  opacity: 0.5;
+  opacity: 0.6;
 }
 .btn-icon.btn-favourite:hover,
 .btn-icon.btn-favourite.active {
@@ -1233,7 +1271,7 @@ body {
   color: #f5c518;
 }
 .btn-icon.btn-favourite:hover {
-  background: rgba(245, 197, 24, 0.2) !important;
+  background: rgba(245, 197, 24, 0.15) !important;
 }
 
 .my-preset-col-like {

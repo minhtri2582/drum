@@ -5,7 +5,7 @@ WORKDIR /app
 COPY server/package*.json ./server/
 RUN cd server && npm ci --omit=dev
 
-COPY index.html styles.css app.js i18n.js ./
+COPY index.html guide.html styles.css app.js i18n.js ./
 COPY styles ./styles
 COPY audio ./audio
 RUN mkdir -p audio/standard
