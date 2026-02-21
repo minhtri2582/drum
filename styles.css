@@ -768,6 +768,8 @@ body.app-drum select {
   gap: 2px;
 }
 
+.steps-header-12 { grid-template-columns: repeat(12, 1fr); min-width: 240px; }
+.steps-header-16 { grid-template-columns: repeat(16, 1fr); min-width: 320px; }
 .steps-header-24 { grid-template-columns: repeat(24, 1fr); min-width: 480px; }
 .steps-header-32 { grid-template-columns: repeat(32, 1fr); min-width: 640px; }
 
@@ -819,6 +821,8 @@ body.app-drum select {
   flex: 1;
 }
 
+.steps-12 { grid-template-columns: repeat(12, 1fr); min-width: 240px; }
+.steps-16 { grid-template-columns: repeat(16, 1fr); min-width: 320px; }
 .steps-24 { grid-template-columns: repeat(24, 1fr); min-width: 480px; }
 .steps-32 { grid-template-columns: repeat(32, 1fr); min-width: 640px; }
 
@@ -1532,6 +1536,16 @@ body.app-drum select {
     max-width: 32px;
   }
 
+  .steps-header-12,
+  .steps-12 {
+    min-width: 280px;
+  }
+
+  .steps-header-16,
+  .steps-16 {
+    min-width: 360px;
+  }
+
   .steps-header-24,
   .steps-24 {
     min-width: 520px;
@@ -1582,6 +1596,16 @@ body.app-drum select {
     max-width: 30px;
   }
 
+  .steps-header-12,
+  .steps-12 {
+    min-width: 240px;
+  }
+
+  .steps-header-16,
+  .steps-16 {
+    min-width: 320px;
+  }
+
   .steps-header-24,
   .steps-24 {
     min-width: 480px;
@@ -1630,6 +1654,16 @@ body.app-drum select {
   .step {
     min-width: 26px;
     max-width: 28px;
+  }
+
+  .steps-header-12,
+  .steps-12 {
+    min-width: 220px;
+  }
+
+  .steps-header-16,
+  .steps-16 {
+    min-width: 280px;
   }
 
   .steps-header-24,

@@ -26,7 +26,7 @@ Web app Drum Machine (step sequencer) cho phép:
 ### Pattern (Step Sequencer)
 
 - **9 nhạc cụ**: hihatPedal, tom, floorTom, cymbal, ride, cowbell, hihat, snare, kick
-- **Số step**: 16–32 tùy time signature (4/4, 3/4, 12/8)
+- **Số step**: 12–32 tùy time signature (4/4, 4/4-2, 3/4, 3/4-2, 12/8)
 - **Giá trị step**: 0 (tắt), 1 (bình thường), 2 (variant: open hi-hat, rimshot...), 3 (ghost note)
 - **Tuplet**: Mỗi step có thể là tuplet 2–6 (object `{ tuplet, hits }`)
 

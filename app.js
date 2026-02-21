@@ -299,9 +299,17 @@ function getTimeSignatureConfig() {
     // 3/4: 2 ô nhịp, mỗi ô 3 phách, mỗi phách 4 steps → 12 steps/measure, 24 total
     return { measures: 2, subdivisions: 12 };
   }
+  if (val === '3/4-2') {
+    // 3/4-2: 2 ô nhịp, mỗi ô 3 phách, mỗi phách 2 steps → 6 steps/measure, 12 total
+    return { measures: 2, subdivisions: 6 };
+  }
   if (val === '12/8') {
     // 12/8: 2 ô nhịp, mỗi ô 4 phách, mỗi phách 3 steps → 12 steps/measure, 24 total
     return { measures: 2, subdivisions: 12 };
+  }
+  if (val === '4/4-2') {
+    // 4/4-2: 2 ô nhịp, mỗi ô 4 phách, mỗi phách 2 steps → 8 steps/measure, 16 total
+    return { measures: 2, subdivisions: 8 };
   }
   // 4/4: 4 steps = 1 phách, 4 phách = 1 ô nhịp → 16 steps/measure
   return { measures: 2, subdivisions: 16 };
@@ -320,7 +328,7 @@ function getStepsPerBeat() {
   const measuresCount = getMeasuresCount();
   const ts = timeSignatureSelect ? timeSignatureSelect.value : '4/4';
   const colsPerMeasure = stepsCount / measuresCount;
-  const beatsPerMeasure = ts === '3/4' ? 3 : 4;
+  const beatsPerMeasure = (ts === '3/4' || ts === '3/4-2') ? 3 : 4;
   return Math.max(1, Math.floor(colsPerMeasure / beatsPerMeasure));
 }
 
@@ -647,7 +655,7 @@ function playMetronomeClick(accent = false) {
   gain.connect(getAudioDestination());
   osc.frequency.setValueAtTime(accent ? 1000 : 800, t);
   osc.type = 'sine';
-  gain.gain.setValueAtTime(accent ? 0.15 : 0.08, t);
+  gain.gain.setValueAtTime(accent ? 0.28 : 0.16, t);
   gain.gain.exponentialRampToValueAtTime(0.01, t + 0.03);
   osc.start(t);
   osc.stop(t + 0.03);
@@ -864,7 +872,7 @@ function updateGridHeader() {
   header.innerHTML = '';
   const colsPerMeasure = stepsCount / measuresCount;
   const ts = timeSignatureSelect ? timeSignatureSelect.value : '4/4';
-  const beatsPerMeasure = ts === '3/4' ? 3 : 4;
+  const beatsPerMeasure = (ts === '3/4' || ts === '3/4-2') ? 3 : 4;
   const stepsPerBeat = Math.max(1, Math.floor(colsPerMeasure / beatsPerMeasure)); // 4/4: 4 steps = 1 phách
   for (let i = 0; i < stepsCount; i++) {
     const stepInMeasure = i % colsPerMeasure;
@@ -1095,9 +1103,9 @@ function getSwingDeltaForNextStep(nextStep) {
   return (nextStep % 2 === 1) ? swingAmount : -swingAmount;
 }
 
-function startPlayback() {
+async function startPlayback() {
   if (isPlaying) return;
-  getAudioContext().resume();
+  await getAudioContext().resume();
   isPlaying = true;
   playBtn.classList.add('playing');
   playBtn.querySelector('.play-icon').textContent = '■';
@@ -1107,13 +1115,12 @@ function startPlayback() {
     const p = chainPresets[0].preset;
     pattern = yamlPresetToPattern(p);
     if (p.bpm) bpmInput.value = p.bpm;
-    if (p.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(p.timeSignature)) {
+    if (p.timeSignature && timeSignatureSelect && ['3/4', '3/4-2', '4/4', '4/4-2', '12/8'].includes(p.timeSignature)) {
       timeSignatureSelect.value = p.timeSignature;
     }
     renderSequencer();
     updatePresetNameDisplay(p.name + ' (1/' + chainPresets.length + ')');
   }
-  const baseInterval = 60000 / getBpm() / 4;
   currentStep = 0;
   updateCurrentStepUI();
   const stepsCount = getStepsCount();
@@ -1121,12 +1128,20 @@ function startPlayback() {
   const colsPerMeasure = stepsCount / measuresCount;
   const stepsPerBeat = getStepsPerBeat();
 
+  function getBaseInterval() {
+    const ts = timeSignatureSelect ? timeSignatureSelect.value : '4/4';
+    if (ts === '12/8') return 60000 / getBpm() / 3;   // 12/8: 3 steps/phách = 4 steps/phách của 4/4
+    if (ts === '4/4-2' || ts === '3/4-2') return 60000 / getBpm() / 2;  // 2 steps/phách = 4 steps/phách của 4/4, 3/4
+    return 60000 / getBpm() / 4;  // 4/4, 3/4
+  }
+
   function tick() {
+    updateCurrentStepUI(); // Highlight step trước khi phát (tránh nhảy sang step 2 ngay từ đầu)
     const playbackPattern = getPlaybackPattern();
     if (metronomeCheck && metronomeCheck.checked) {
       const stepInMeasure = currentStep % colsPerMeasure;
-      const isQuarterBeat = stepInMeasure % stepsPerBeat === 0;
-      if (isQuarterBeat) {
+      const isMetronomeBeat = stepInMeasure % stepsPerBeat === 0;
+      if (isMetronomeBeat) {
         playMetronomeClick(stepInMeasure === 0);
       }
     }
@@ -1137,7 +1152,7 @@ function startPlayback() {
       const row = playbackPattern[inst.id];
       const stepData = getStepData(row, currentStep);
       if (stepData.isTuplet) {
-        const stepDuration = baseInterval;
+        const stepDuration = getBaseInterval();
         stepData.hits.forEach((hitVal, i) => {
           if (hitVal) {
             const delay = (i / stepData.tuplet) * stepDuration;
@@ -1160,7 +1175,7 @@ function startPlayback() {
           const p = chainPresets[chainPlaybackIndex].preset;
           pattern = yamlPresetToPattern(p);
           if (p.bpm) bpmInput.value = p.bpm;
-          if (p.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(p.timeSignature)) {
+          if (p.timeSignature && timeSignatureSelect && ['3/4', '3/4-2', '4/4', '4/4-2', '12/8'].includes(p.timeSignature)) {
             timeSignatureSelect.value = p.timeSignature;
           }
           renderSequencer();
@@ -1168,13 +1183,13 @@ function startPlayback() {
         }
       }
     }
-    updateCurrentStepUI();
     const nextStep = currentStep >= stepsCount ? 0 : currentStep;
     const swingDelta = getSwingDeltaForNextStep(nextStep);
+    const baseInterval = getBaseInterval();
     intervalId = setTimeout(tick, Math.max(10, baseInterval + swingDelta));
   }
 
-  intervalId = setTimeout(tick, baseInterval);
+  tick(); // Phát ngay step đầu tiên (và click) sau khi AudioContext đã resume
 }
 
 function stopPlayback() {
@@ -1193,7 +1208,7 @@ function togglePlayback() {
   if (isPlaying) {
     stopPlayback();
   } else {
-    startPlayback();
+    startPlayback().catch(console.warn);
   }
 }
 
@@ -1281,7 +1296,7 @@ function decodePattern(encoded) {
     const bpm = parseInt(parts[idx] || 0) || DEFAULT_BPM;
     bpmInput.value = bpm;
     idx++;
-    if (parts.length > idx && ['3/4', '4/4', '12/8'].includes(parts[idx]) && timeSignatureSelect) {
+    if (parts.length > idx && ['3/4', '3/4-2', '4/4', '4/4-2', '12/8'].includes(parts[idx]) && timeSignatureSelect) {
       timeSignatureSelect.value = parts[idx];
       idx++;
     }
@@ -1539,7 +1554,7 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
       await applyPreset(p);
       closeMyPresetsModal();
       if (isPlaying) stopPlayback();
-      startPlayback();
+      startPlayback().catch(console.warn);
     });
     const favBtn = item.querySelector('.btn-favourite');
     if (favBtn) favBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFavourite(p.id); });
@@ -1550,7 +1565,7 @@ function renderMyPresetsList(presets, searchTerm = '', sortOrder = myPresetsSort
       await applyPreset(p);
       closeMyPresetsModal();
       if (isPlaying) stopPlayback();
-      startPlayback();
+      startPlayback().catch(console.warn);
     });
     const editBtn = item.querySelector('.btn-edit');
     const delBtn = item.querySelector('.btn-danger');
@@ -1973,7 +1988,7 @@ function getFallbackPresets() {
 async function applyPreset(preset) {
   pattern = yamlPresetToPattern(preset);
   if (preset.bpm) bpmInput.value = preset.bpm;
-  if (preset.timeSignature && timeSignatureSelect && ['3/4', '4/4', '12/8'].includes(preset.timeSignature)) {
+  if (preset.timeSignature && timeSignatureSelect && ['3/4', '3/4-2', '4/4', '4/4-2', '12/8'].includes(preset.timeSignature)) {
     timeSignatureSelect.value = preset.timeSignature;
   }
   currentStep = 0;
@@ -2034,7 +2049,7 @@ function renderPresetList(presets, searchTerm = '') {
         await applyPreset(preset);
         closeRhythmModal();
         if (isPlaying) stopPlayback();
-        startPlayback();
+        startPlayback().catch(console.warn);
       });
       container.appendChild(btn);
     });
@@ -2350,7 +2365,7 @@ function buildMidiBlob(preset) {
     0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
     0x00, 0x00, 0x01, 0x00, 0x01, 0xe0
   ];
-  const [tsNum, tsDen] = ts === '3/4' ? [3, 4] : ts === '12/8' ? [12, 8] : [4, 4];
+  const [tsNum, tsDen] = (ts === '3/4' || ts === '3/4-2') ? [3, 4] : ts === '12/8' ? [12, 8] : [4, 4];
   const tempo = Math.floor(60000000 / bpm);
 
   const trackChunk = [];
