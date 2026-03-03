@@ -193,6 +193,30 @@ body.app-drum select {
   padding: 0.25rem 0.5rem;
 }
 
+/* Header icon buttons: icon only for compact layout */
+.btn-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.btn-header-icon .btn-text-header {
+  display: none;
+}
+
+.btn-header-icon .btn-icon-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-header-icon .btn-icon-header svg {
+  display: block;
+}
+
 /* Controls - Transport bar style */
 .controls {
   display: flex;

@@ -327,7 +327,9 @@ function applyTranslations() {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
-    el.title = t(el.dataset.i18nTitle);
+    const val = t(el.dataset.i18nTitle);
+    el.title = val;
+    el.setAttribute('aria-label', val);
   });
   document.querySelectorAll('[data-i18n-empty]').forEach(el => {
     el.dataset.empty = t(el.dataset.i18nEmpty);
